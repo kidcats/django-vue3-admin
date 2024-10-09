@@ -62,6 +62,10 @@ INSTALLED_APPS = [
     "dvadmin.system",
 ]
 
+My_Apps = [
+    'vulnerability_report',
+]
+
 MIDDLEWARE = [
     "dvadmin.utils.middleware.HealthCheckMiddleware",
     "django.middleware.security.SecurityMiddleware",

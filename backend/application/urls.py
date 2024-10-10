@@ -120,3 +120,12 @@ urlpatterns = (
         + static(settings.STATIC_URL, document_root=settings.STATIC_URL)
         + [re_path(ele.get('re_path'), include(ele.get('include'))) for ele in settings.PLUGINS_URL_PATTERNS]
 )
+
+My_Urls = ([
+        path('',include('crud_demo.urls')),
+        path('',include('vulnerability_report.urls')),
+
+    ]
+)
+
+urlpatterns += My_Urls

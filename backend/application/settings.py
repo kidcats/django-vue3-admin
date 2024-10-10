@@ -64,7 +64,10 @@ INSTALLED_APPS = [
 
 My_Apps = [
     'vulnerability_report',
+    'crud_demo',  #新的应用写在这里
 ]
+
+INSTALLED_APPS += My_Apps
 
 MIDDLEWARE = [
     "dvadmin.utils.middleware.HealthCheckMiddleware",

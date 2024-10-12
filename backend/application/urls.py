@@ -122,8 +122,8 @@ urlpatterns = (
 )
 
 My_Urls = ([
-        path('',include('crud_demo.urls')),
-        path('',include('vulnerability_report.urls')),
+        # path('',include('crud_demo.urls')),
+        path('',include('reports.urls')),
 
     ]
 )

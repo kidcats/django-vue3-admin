@@ -1,6 +1,6 @@
 from django.apps import AppConfig
 
 
-class VulnerabilityReportConfig(AppConfig):
+class ReportsConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
-    name = 'vulnerability_report'
+    name = 'reports'

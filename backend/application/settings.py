@@ -63,8 +63,8 @@ INSTALLED_APPS = [
 ]
 
 My_Apps = [
-    'vulnerability_report',
-    'crud_demo',  #新的应用写在这里
+    # 'crud_demo',  #新的应用写在这里
+    'reports',
 ]
 
 INSTALLED_APPS += My_Apps

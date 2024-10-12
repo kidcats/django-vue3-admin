@@ -4,6 +4,7 @@ from rest_framework.routers import SimpleRouter
 from django.urls import path, include
 
 from .views import (
+    EmailConfigurationViewSet,
     ReportViewSet,
     EmailSendRecordViewSet,
     TemplateViewSet,
@@ -21,6 +22,7 @@ router.register(r'api/templates', TemplateViewSet, basename='template')
 router.register(r'api/scheduled-tasks', ScheduledTaskViewSet, basename='scheduledtask')
 router.register(r'api/task-logs', TaskLogViewSet, basename='tasklog')
 router.register(r'api/intermediate-data', IntermediateDataViewSet, basename='intermediatedata')
+router.register(r'api/email-configurations', EmailConfigurationViewSet)
 
 urlpatterns = [
     path('', include(router.urls)),

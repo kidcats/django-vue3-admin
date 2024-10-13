@@ -3,6 +3,7 @@
 from rest_framework import viewsets, filters, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.pagination import PageNumberPagination
 from django.shortcuts import get_object_or_404
 from .models import (
     Report,
@@ -40,6 +41,22 @@ import json
 # 简报管理模块视图集
 # ===========================
 
+
+class CustomPagination(PageNumberPagination):
+    page_size = 10
+    page_size_query_param = 'per_page'
+    max_page_size = 100
+
+    def get_paginated_response(self, data):
+        return Response({
+            'current_page': self.page.number,
+            'per_page': self.page.paginator.per_page,
+            'total_pages': self.page.paginator.num_pages,
+            'total_items': self.page.paginator.count,
+            'data': data
+        })
+
+
 class ReportViewSet(CustomModelViewSet):
     """
     list: 查询简报
@@ -49,17 +66,38 @@ class ReportViewSet(CustomModelViewSet):
     destroy: 删除简报
     send: 发送简报邮件
     email_history: 获取简报的邮件发送历史
+    report_type: 获取简报的所有类型
     """
     queryset = Report.objects.all()
     serializer_class = ReportSerializer
-    create_serializer_class = ReportCreateUpdateSerializer
-    update_serializer_class = ReportCreateUpdateSerializer
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['title', 'type', 'summary', 'content']
     ordering_fields = ['report_date', 'create_datetime', 'update_datetime']
+    pagination_class = CustomPagination
 
-    @action(detail=True, methods=['post'], serializer_class=ReportSendSerializer, url_path='send')
-    def send_email(self, request, pk=None):
+    def get_serializer_class(self):
+        if self.action in ['create', 'update', 'partial_update']:
+            return ReportCreateUpdateSerializer
+        return self.serializer_class
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        start_date = self.request.query_params.get('start_date')
+        end_date = self.request.query_params.get('end_date')
+        report_type = self.request.query_params.get('type')
+
+        if start_date and end_date:
+            queryset = queryset.filter(report_date__range=[start_date, end_date])
+        if report_type:
+            queryset = queryset.filter(type=report_type)
+
+        return queryset
+
+    def perform_create(self, serializer):
+        serializer.save(creator=self.request.user)
+
+    @action(detail=True, methods=['post'], serializer_class=ReportSendSerializer)
+    def send(self, request, pk=None):
         """
         发送简报邮件
         """
@@ -82,13 +120,12 @@ class ReportViewSet(CustomModelViewSet):
                 from_email=from_email,
                 recipient_list=recipients,
                 fail_silently=False,
-                html_message=report.content  # 如果 content 是 HTML，可以使用 html_message
+                html_message=report.content
             )
             status_send = '成功'
         except Exception as e:
             status_send = '失败'
 
-        # 记录邮件发送记录
         email_record = EmailSendRecord.objects.create(
             report=report,
             recipients=';'.join(recipients),
@@ -102,18 +139,29 @@ class ReportViewSet(CustomModelViewSet):
             "status": status_send
         }, status=status.HTTP_200_OK)
 
-    @action(detail=True, methods=['get'], url_path='email-history')
+    @action(detail=True, methods=['get'])
     def email_history(self, request, pk=None):
         """
         获取简报的邮件发送历史
         """
         report = self.get_object()
-        email_records = report.email_send_records.all().order_by('-sent_at')
+        email_records = report.email_send_records.all().order_by('-create_datetime')
         serializer = EmailSendRecordSerializer(email_records, many=True)
         return Response({
             "report_id": report.id,
             "email_history": serializer.data
         }, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=['get'], url_path='report_type')
+    def report_type(self, request):
+        """
+        获取简报的所有类型
+        """
+        # 假设 'type' 字段有 choices 属性
+        field = Report._meta.get_field('type')
+        choices = field.choices
+        types = [{'value': choice[0], 'label': choice[1]} for choice in choices]
+        return Response(types, status=status.HTTP_200_OK)
 
 
 # ===========================

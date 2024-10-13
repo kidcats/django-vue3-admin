@@ -17,19 +17,21 @@ def media_file_name(instance, filename):
     return os.path.join("files", instance.md5sum[:1], instance.md5sum[1:2], instance.md5sum + ext.lower())
 
 
+REPORT_TYPES = [
+    ('日报', '日报'),
+    ('周报', '周报'),
+    ('月报', '月报'),
+    ('季报', '季报'),
+    ('年报', '年报'),
+    ('其它', '其它'),
+]
+
 # ===========================
 # 简报管理模块模型
 # ===========================
 
 class Report(CoreModel):
-    REPORT_TYPES = [
-        ('日报', '日报'),
-        ('周报', '周报'),
-        ('月报', '月报'),
-        ('季报', '季报'),
-        ('年报', '年报'),
-        ('其它', '其它'),
-    ]
+
 
     title = models.CharField(max_length=255, verbose_name="简报标题", help_text="简报标题")
     type = models.CharField(
@@ -246,13 +248,6 @@ class IntermediateData(CoreModel):
 # ===========================
 
 class EmailConfiguration(CoreModel):
-    REPORT_TYPES = [
-        ('日报', '日报'),
-        ('周报', '周报'),
-        ('月报', '月报'),
-        ('季报', '季报'),
-        ('年报', '年报'),
-    ]
 
     report_type = models.CharField(
         max_length=10,

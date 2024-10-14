@@ -1,10 +1,12 @@
 # backend/vulnerability_report/views.py
 
-from rest_framework import viewsets, filters, status
+from rest_framework import  filters, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.pagination import PageNumberPagination
-from django.shortcuts import get_object_or_404
+
+from dvadmin.utils.filters import DataLevelPermissionsFilter
+from reports.filter import ReportsCoreModelFilterBankend
+from dvadmin.utils.json_response import DetailResponse, ErrorResponse, SuccessResponse
 from .models import (
     Report,
     EmailSendRecord,
@@ -42,21 +44,6 @@ import json
 # ===========================
 
 
-class CustomPagination(PageNumberPagination):
-    page_size = 10
-    page_size_query_param = 'per_page'
-    max_page_size = 100
-
-    def get_paginated_response(self, data):
-        return Response({
-            'current_page': self.page.number,
-            'per_page': self.page.paginator.per_page,
-            'total_pages': self.page.paginator.num_pages,
-            'total_items': self.page.paginator.count,
-            'data': data
-        })
-
-
 class ReportViewSet(CustomModelViewSet):
     """
     list: 查询简报
@@ -70,28 +57,15 @@ class ReportViewSet(CustomModelViewSet):
     """
     queryset = Report.objects.all()
     serializer_class = ReportSerializer
-    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
-    search_fields = ['title', 'type', 'summary', 'content']
+    search_fields = ['title', 'type', 'summary', 'content','create_datetime']
+    extra_filter_class = [ReportsCoreModelFilterBankend,DataLevelPermissionsFilter]
     ordering_fields = ['report_date', 'create_datetime', 'update_datetime']
-    pagination_class = CustomPagination
 
     def get_serializer_class(self):
         if self.action in ['create', 'update', 'partial_update']:
             return ReportCreateUpdateSerializer
         return self.serializer_class
 
-    def get_queryset(self):
-        queryset = super().get_queryset()
-        start_date = self.request.query_params.get('start_date')
-        end_date = self.request.query_params.get('end_date')
-        report_type = self.request.query_params.get('type')
-
-        if start_date and end_date:
-            queryset = queryset.filter(report_date__range=[start_date, end_date])
-        if report_type:
-            queryset = queryset.filter(type=report_type)
-
-        return queryset
 
     def perform_create(self, serializer):
         serializer.save(creator=self.request.user)
@@ -107,7 +81,7 @@ class ReportViewSet(CustomModelViewSet):
         recipients = serializer.validated_data.get('recipients', [])
 
         if not recipients:
-            return Response({"detail": "接收者列表不能为空。"}, status=status.HTTP_400_BAD_REQUEST)
+            return ErrorResponse(msg="列表不能为空")
 
         subject = report.title
         message = report.content
@@ -147,12 +121,9 @@ class ReportViewSet(CustomModelViewSet):
         report = self.get_object()
         email_records = report.email_send_records.all().order_by('-create_datetime')
         serializer = EmailSendRecordSerializer(email_records, many=True)
-        return Response({
-            "report_id": report.id,
-            "email_history": serializer.data
-        }, status=status.HTTP_200_OK)
+        return SuccessResponse(data=serializer,msg="成功获取简报邮件发送历史")
 
-    @action(detail=False, methods=['get'], url_path='report_type')
+    @action(detail=False, methods=['get'], url_path='report_types')
     def report_type(self, request):
         """
         获取简报的所有类型
@@ -161,7 +132,7 @@ class ReportViewSet(CustomModelViewSet):
         field = Report._meta.get_field('type')
         choices = field.choices
         types = [{'value': choice[0], 'label': choice[1]} for choice in choices]
-        return Response(types, status=status.HTTP_200_OK)
+        return DetailResponse(data=types,msg="返回简报所有类型")
 
 
 # ===========================
@@ -180,7 +151,6 @@ class EmailSendRecordViewSet(CustomModelViewSet):
     serializer_class = EmailSendRecordSerializer
     create_serializer_class = EmailSendRecordCreateUpdateSerializer
     update_serializer_class = EmailSendRecordCreateUpdateSerializer
-    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['report__title', 'recipients', 'status']
     ordering_fields = ['sent_at', 'create_datetime', 'update_datetime']
 
@@ -201,7 +171,6 @@ class TemplateViewSet(CustomModelViewSet):
     serializer_class = TemplateSerializer
     create_serializer_class = TemplateCreateUpdateSerializer
     update_serializer_class = TemplateCreateUpdateSerializer
-    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['template_name', 'template_type', 'content']
     ordering_fields = ['id', 'create_datetime', 'update_datetime']
 
@@ -224,7 +193,6 @@ class ScheduledTaskViewSet(CustomModelViewSet):
     serializer_class = ScheduledTaskSerializer
     create_serializer_class = ScheduledTaskCreateUpdateSerializer
     update_serializer_class = ScheduledTaskCreateUpdateSerializer
-    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['name', 'frequency', 'status']
     ordering_fields = ['id', 'create_datetime', 'update_datetime']
 
@@ -269,7 +237,6 @@ class TaskLogViewSet(CustomModelViewSet):
     serializer_class = TaskLogSerializer
     create_serializer_class = TaskLogCreateUpdateSerializer
     update_serializer_class = TaskLogCreateUpdateSerializer
-    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['job_id', 'task_name', 'result']
     ordering_fields = ['start_time', 'create_datetime', 'update_datetime']
 
@@ -290,7 +257,6 @@ class IntermediateDataViewSet(CustomModelViewSet):
     serializer_class = IntermediateDataSerializer
     create_serializer_class = IntermediateDataCreateUpdateSerializer
     update_serializer_class = IntermediateDataCreateUpdateSerializer
-    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['date', 'job__name']
     ordering_fields = ['date', 'create_datetime', 'update_datetime']
 
@@ -311,6 +277,5 @@ class EmailConfigurationViewSet(CustomModelViewSet):
     serializer_class = EmailConfigurationSerializer
     create_serializer_class = EmailConfigurationCreateUpdateSerializer
     update_serializer_class = EmailConfigurationCreateUpdateSerializer
-    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['report_type', 'recipients']
     ordering_fields = ['create_datetime', 'update_datetime']

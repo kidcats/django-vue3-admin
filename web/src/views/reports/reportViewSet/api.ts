@@ -1,80 +1,94 @@
 import { request } from '/@/utils/service';
 
+const BASE_URL = '/api/reports/';
 
-// 获取所有简报类型
-export function GetReportTypes() {
-  return request({
-      url: '/api/reports/report_type/',
-      method: 'get',
-  });
+export interface Report {
+    id: number;
+    title: string;
+    content: string;
+    report_type: string;
+    status: string;
+    creator: {
+        id: number;
+        username: string;
+    };
+    create_datetime: string;
+    update_datetime: string;
 }
 
-// 获取简报列表
-export function GetList(query: any) {
-  return request({
-    url: '/api/reports',
-    method: 'get',
-    params: query
-  });
+export interface ReportQuery {
+    page?: number;
+    limit?: number;
+    title__icontains?: string;
+    report_type?: string;
+    status?: string;
+    create_datetime?: string;
+    update_datetime?: string;
 }
 
-// 创建新简报
-export function AddObj(obj: any) {
-  return request({
-    url: '/api/reports',
-    method: 'post',
-    data: obj
-  });
-}
+export const getList = (query: ReportQuery) => {
+    return request({
+        url: BASE_URL,
+        method: 'get',
+        params: query
+    });
+};
 
-// 获取特定简报详情
-export function GetReport(id: number) {
-  return request({
-    url: `/api/reports/${id}`,
-    method: 'get'
-  });
-}
+export const getOne = (id: number) => {
+    return request({
+        url: `${BASE_URL}${id}/`,
+        method: 'get'
+    });
+};
 
-// 更新简报信息
-export function UpdateObj(obj: any) {
-  return request({
-    url: `/api/reports/${obj.id}`,
-    method: 'put',
-    data: obj
-  });
-}
+export const create = (data: Partial<Report>) => {
+    return request({
+        url: BASE_URL,
+        method: 'post',
+        data
+    });
+};
 
-// 删除简报
-export function DelObj(id: number) {
-  return request({
-    url: `/api/reports/${id}`,
-    method: 'delete'
-  });
-}
+export const update = (id: number, data: Partial<Report>) => {
+    return request({
+        url: `${BASE_URL}${id}/`,
+        method: 'put',
+        data
+    });
+};
 
-// 发送简报邮件
-export function SendReport(id: number, recipients: string[]) {
-  return request({
-    url: `/api/reports/${id}/send`,
-    method: 'post',
-    data: { recipients }
-  });
-}
+export const remove = (id: number) => {
+    return request({
+        url: `${BASE_URL}${id}/`,
+        method: 'delete'
+    });
+};
 
-// 获取邮件发送历史
-export function GetEmailHistory(reportId: number) {
-  return request({
-    url: `/api/reports/${reportId}/email-history`,
-    method: 'get'
-  });
-}
+export const batchDelete = (ids: number[]) => {
+    return request({
+        url: BASE_URL,
+        method: 'delete',
+        data: { ids }
+    });
+};
 
-// （可选）导出简报
-export function exportReports(query: any) {
-  return request({
-    url: '/api/reports/export',
-    method: 'get',
-    params: query,
-    responseType: 'blob'
-  });
-}
+export const sendReport = (id: number) => {
+    return request({
+        url: `${BASE_URL}${id}/send_report/`,
+        method: 'post'
+    });
+};
+
+export const getReportTypes = () => {
+    return request({
+        url: `${BASE_URL}report_types/`,
+        method: 'get'
+    });
+};
+
+export const getReportStatuses = () => {
+    return request({
+        url: `${BASE_URL}get_report_statuses/`,
+        method: 'get'
+    });
+};

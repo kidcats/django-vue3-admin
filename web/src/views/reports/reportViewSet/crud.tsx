@@ -2,15 +2,18 @@ import { CreateCrudOptionsProps, CreateCrudOptionsRet, FsButton, dict, utils } f
 import { getList, create, update, remove, getReportTypes } from "./api";
 import { ElMessage } from 'element-plus';
 import { ref } from "vue";
+import { ReportGroupRow, ReportTypeRow } from "../api";
 
 // 这个很重要，因为pagerequest返回的列表就要跟这个对其
 // 同时下面column里面的行字段匹配的时候也会根据这个类里面的字段名匹配上
+
 export type ReportRow = {
     id?: number;
     title?: string;
-    type?: string;
+    type?: ReportTypeRow;
     summary?: string;
     create_datetime?: string;
+    group?:ReportGroupRow;
 };
 
 export default function ({ crudExpose, context }: CreateCrudOptionsProps<ReportRow>): CreateCrudOptionsRet<ReportRow> {
@@ -53,12 +56,16 @@ export default function ({ crudExpose, context }: CreateCrudOptionsProps<ReportR
                         getData: async () => {
                             const response = await getReportTypes();
                             return response.data.map((item: any) => ({
-                                value: item.value,
-                                label: item.label,
+                                value: item.id,
+                                label: item.name,
                             }));
                         },
                     }),
-                    column: {},
+                    column: {
+                        formatter: (data: any) => {
+                            return data.row.type?.name || '-';  // 使用可选链访问 name，如果不存在则返回 '-'
+                        }
+                    },
                     form: {
                         rules: [{ required: true, message: '请选择类型', trigger: 'change' }],
                     },

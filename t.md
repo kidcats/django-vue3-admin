@@ -493,15 +493,17 @@
 **模板（Template）**
 - id: 主键
 - template_type: 模板类型（枚举：日报、周报、月报、季报、年报）
+- template_group: 模板分组（枚举：安全漏洞、钓鱼邮件）
 - template_name: 模板名称（字符串）
 - content: 模板内容（HTML/富文本）
 - creator_id: 创建人ID（外键关联用户表）
-- created_at: 创建时间（日期时间）
-- updated_at: 最后更新时间（日期时间）
+- creator_name: 创建人姓名（外键关联用户表）
+- create_datetime: 创建时间（日期时间）
+- update_datetime: 最后更新时间（日期时间）
 
 #### 接口设计：
 
-1. **GET /api/templates**
+1. **GET /api/templates/list**
    - 功能：获取模板列表
    - 参数：
      - page: 页码
@@ -533,27 +535,7 @@
    - 功能：创建新模板
    - 参数：模板详细信息（template_type, template_name, content）
    - 返回：创建的模板详情
-  请求
-  ```json
-  {
-  "template_type": "月报",
-  "template_name": "高级月报模板",
-  "content": "<h1>高级月报</h1><p>详细内容...</p>"
-}
-  ```
-  响应
-  
-  ```json
-  {
-  "id": 4,
-  "template_type": "月报",
-  "template_name": "高级月报模板",
-  "content": "<h1>高级月报</h1><p>详细内容...</p>",
-  "creator_id": 5,
-  "created_at": "2023-05-01T09:00:00Z",
-  "updated_at": "2023-05-01T09:00:00Z"
-}
-  ```
+
 3. **GET /api/templates/<id>**
    - 功能：获取特定模板详情
    - 参数：模板ID

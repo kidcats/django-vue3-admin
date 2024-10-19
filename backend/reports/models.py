@@ -2,9 +2,11 @@ import hashlib
 import os
 from django.db import models
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
+from django.core.validators import RegexValidator
 from django.conf import settings
 from dvadmin.system.models import Users
 from dvadmin.utils.models import CoreModel, table_prefix
+
 
 
 def media_file_name(instance, filename):
@@ -17,33 +19,83 @@ def media_file_name(instance, filename):
     return os.path.join("files", instance.md5sum[:1], instance.md5sum[1:2], instance.md5sum + ext.lower())
 
 
-REPORT_TYPES = [
-    ('日报', '日报'),
-    ('周报', '周报'),
-    ('月报', '月报'),
-    ('季报', '季报'),
-    ('年报', '年报'),
-    ('其它', '其它'),
-]
+class ReportType(CoreModel):
+    name = models.CharField(max_length=50, unique=True, verbose_name="简报类型名称")
+    description = models.TextField(blank=True, verbose_name="类型描述")
 
+    class Meta:
+        db_table = table_prefix + "report_types"
+        verbose_name = "简报类型"
+        verbose_name_plural = verbose_name
+
+    def __str__(self):
+        return self.name
+
+class ReportGroup(CoreModel):
+    name = models.CharField(max_length=50, unique=True, verbose_name="简报分组名称")
+    description = models.TextField(blank=True, verbose_name="分组描述")
+
+    class Meta:
+        db_table = table_prefix + "report_groups"
+        verbose_name = "简报分组"
+        verbose_name_plural = verbose_name
+
+    def __str__(self):
+        return self.name
+
+
+class Frequency(CoreModel):
+    name = models.CharField(max_length=100, verbose_name="频率名称", help_text="例如：每天8点")
+    cron_expression = models.CharField(
+        max_length=100, 
+        verbose_name="Cron 表达式",
+        help_text="Cron 格式的时间表达式",
+        validators=[
+            RegexValidator(
+                regex=r'^(\*|([0-9]|1[0-9]|2[0-9]|3[0-9]|4[0-9]|5[0-9])|\*\/([0-9]|1[0-9]|2[0-9]|3[0-9]|4[0-9]|5[0-9])) (\*|([0-9]|1[0-9]|2[0-3])|\*\/([0-9]|1[0-9]|2[0-3])) (\*|([1-9]|1[0-9]|2[0-9]|3[0-1])|\*\/([1-9]|1[0-9]|2[0-9]|3[0-1])) (\*|([1-9]|1[0-2])|\*\/([1-9]|1[0-2])) (\*|([0-6])|\*\/([0-6]))$',
+                message="请输入有效的 Cron 表达式",
+            ),
+        ]
+    )
+    description = models.TextField(blank=True, verbose_name="描述", help_text="频率的详细描述")
+    is_active = models.BooleanField(default=True, verbose_name="是否启用")
+
+    class Meta:
+        db_table = table_prefix + "report_frequencies"
+        verbose_name = "频率选项"
+        verbose_name_plural = verbose_name
+        ordering = ["name"]
+
+    def __str__(self):
+        return f"{self.name} ({self.cron_expression})"
 # ===========================
 # 简报管理模块模型
 # ===========================
 
+
 class Report(CoreModel):
-
-
     title = models.CharField(max_length=255, verbose_name="简报标题", help_text="简报标题")
-    type = models.CharField(
-        max_length=10, choices=REPORT_TYPES, verbose_name="简报类型", help_text="简报类型"
+    type = models.ForeignKey(
+        ReportType,
+        on_delete=models.PROTECT,
+        related_name='reports',
+        verbose_name="简报类型",
+        help_text="简报类型"
     )
     summary = models.TextField(verbose_name="简报摘要", help_text="简报摘要")
     content = models.TextField(verbose_name="简报内容", help_text="简报内容")
     report_date = models.DateField(verbose_name="简报日期", help_text="简报日期")
+    report_group = models.ForeignKey(
+        ReportGroup,
+        on_delete=models.PROTECT,
+        related_name='reports',
+        verbose_name="简报分组",
+        help_text="简报分组"
+    )
     creator = models.ForeignKey(
         Users,
         on_delete=models.CASCADE,
-        related_name='report_reports',
+        related_name='reports',
         verbose_name="创建者",
         help_text="创建者",
         db_constraint=False,
@@ -97,16 +149,20 @@ class EmailSendRecord(CoreModel):
 # ===========================
 
 class Template(CoreModel):
-    TEMPLATE_TYPES = [
-        ('日报', '日报'),
-        ('周报', '周报'),
-        ('月报', '月报'),
-        ('季报', '季报'),
-        ('年报', '年报'),
-    ]
-
-    template_type = models.CharField(
-        max_length=10, choices=TEMPLATE_TYPES, verbose_name="模板类型", help_text="模板类型"
+    
+    template_type = models.ForeignKey(
+        ReportType,
+        on_delete=models.PROTECT,
+        related_name='report_templates',
+        verbose_name="模板类型",
+        help_text="模板类型"
+    )
+    template_group =  models.ForeignKey(
+        ReportGroup,
+        on_delete=models.PROTECT,
+        related_name='report_templates',
+        verbose_name="模板分组",
+        help_text="模板分组"
     )
     template_name = models.CharField(max_length=255, verbose_name="模板名称", help_text="模板名称")
     content = models.TextField(verbose_name="模板内容", help_text="模板内容")
@@ -136,22 +192,19 @@ class Template(CoreModel):
 # ===========================
 
 class ScheduledTask(CoreModel):
-    FREQUENCY_CHOICES = [
-        ('0 8 * * *', '每天8点'),
-        ('0 9 * * *', '每天9点'),
-        ('0 10 * * *', '每天10点'),
-        ('0 10 * * 1', '每周一10点'),
-        ('0 9 1 * *', '每月1号9点'),
-        # 根据需要添加更多的频率选项
-    ]
     STATUS_CHOICES = [
         ('运行中', '运行中'),
         ('暂停', '暂停'),
     ]
 
     name = models.CharField(max_length=255, verbose_name="任务名称", help_text="任务名称")
-    frequency = models.CharField(
-        max_length=20, choices=FREQUENCY_CHOICES, verbose_name="执行频率", help_text="执行频率（Cron表达式）"
+    frequency = models.ForeignKey(
+        Frequency,
+        on_delete=models.PROTECT,
+        related_name='report_scheduled_tasks',
+        verbose_name="频率",
+        help_text="选择执行频率",
+        db_constraint=False,
     )
     template = models.ForeignKey(
         Template,
@@ -201,7 +254,9 @@ class TaskLog(CoreModel):
     result = models.CharField(
         max_length=10, choices=RESULT_CHOICES, default='执行中', verbose_name="执行结果", help_text="执行结果"
     )
-    details = models.JSONField(verbose_name="详细信息", help_text="详细信息")
+    parameters = models.JSONField(verbose_name="运行参数", help_text="运行参数", default=dict)
+    error_info = models.CharField(max_length=255, verbose_name="错误信息", help_text="错误信息",default="无")
+    
 
     class Meta:
         db_table = table_prefix + "report_task_logs"
@@ -249,9 +304,10 @@ class IntermediateData(CoreModel):
 
 class EmailConfiguration(CoreModel):
 
-    report_type = models.CharField(
-        max_length=10,
-        choices=REPORT_TYPES,
+    report_type = models.ForeignKey(
+        ReportType,
+        on_delete=models.PROTECT,
+        related_name='email_config',
         verbose_name="简报类型",
         help_text="简报类型"
     )

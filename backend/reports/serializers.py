@@ -1,32 +1,94 @@
-# backend/vulnerability_report/serializers.py
-
 from rest_framework import serializers
-from .models import (
-    Report,
-    EmailSendRecord,
-    Template,
-    ScheduledTask,
-    TaskLog,
-    IntermediateData,
-    EmailConfiguration
-)
 from dvadmin.utils.serializers import CustomModelSerializer
-
+from .models import (
+    Report, EmailSendRecord, Template, ScheduledTask, TaskLog, 
+    IntermediateData, EmailConfiguration, ReportType, ReportGroup, Frequency
+)
 
 # ===========================
-# 简报管理模块序列化器
+# 报告类型模块序列化器
+# ===========================
+
+class ReportTypeSerializer(CustomModelSerializer):
+    """
+    报告类型序列化器
+    """
+    # creator = serializers.StringRelatedField()
+
+    class Meta:
+        model = ReportType
+        fields = '__all__'
+
+class ReportTypeCreateUpdateSerializer(CustomModelSerializer):
+    """
+    创建/更新报告类型时的序列化器
+    """
+
+    class Meta:
+        model = ReportType
+        fields = '__all__'
+
+# ===========================
+# 报告分组模块序列化器
+# ===========================
+
+class ReportGroupSerializer(CustomModelSerializer):
+    """
+    报告分组序列化器
+    """
+    # creator = serializers.StringRelatedField()
+
+    class Meta:
+        model = ReportGroup
+        fields = '__all__'
+
+class ReportGroupCreateUpdateSerializer(CustomModelSerializer):
+    """
+    创建/更新报告分组时的序列化器
+    """
+
+    class Meta:
+        model = ReportGroup
+        fields = '__all__'
+
+# ===========================
+# 频率选项模块序列化器
+# ===========================
+
+class FrequencySerializer(CustomModelSerializer):
+    """
+    频率选项序列化器
+    """
+    # creator = serializers.StringRelatedField()
+
+    class Meta:
+        model = Frequency
+        fields = '__all__'
+
+class FrequencyCreateUpdateSerializer(CustomModelSerializer):
+    """
+    创建/更新频率选项时的序列化器
+    """
+
+    class Meta:
+        model = Frequency
+        fields = '__all__'
+
+# ===========================
+# 简报模块序列化器
 # ===========================
 
 class ReportSerializer(CustomModelSerializer):
     """
     简报序列化器
     """
-    creator = serializers.StringRelatedField()
+    # creator = serializers.StringRelatedField()
+    type = ReportTypeSerializer(read_only=True)
+    group = ReportGroupSerializer(read_only=True)
 
     class Meta:
         model = Report
         fields = '__all__'
-
 
 class ReportCreateUpdateSerializer(CustomModelSerializer):
     """
@@ -37,8 +99,7 @@ class ReportCreateUpdateSerializer(CustomModelSerializer):
         model = Report
         fields = '__all__'
 
-
-class ReportSendSerializer(serializers.Serializer):
+class ReportSendSerializer(CustomModelSerializer):
     """
     发送简报时使用的序列化器
     """
@@ -46,7 +107,6 @@ class ReportSendSerializer(serializers.Serializer):
         child=serializers.EmailField(),
         help_text="邮件接收人列表，多个邮箱使用数组格式提供"
     )
-
 
 # ===========================
 # 邮件发送记录模块序列化器
@@ -56,12 +116,11 @@ class EmailSendRecordSerializer(CustomModelSerializer):
     """
     邮件发送记录序列化器
     """
-    report = serializers.StringRelatedField()
+    report = ReportSerializer(read_only=True)
 
     class Meta:
         model = EmailSendRecord
         fields = '__all__'
-
 
 class EmailSendRecordCreateUpdateSerializer(CustomModelSerializer):
     """
@@ -72,7 +131,6 @@ class EmailSendRecordCreateUpdateSerializer(CustomModelSerializer):
         model = EmailSendRecord
         fields = '__all__'
 
-
 # ===========================
 # 模板管理模块序列化器
 # ===========================
@@ -81,12 +139,13 @@ class TemplateSerializer(CustomModelSerializer):
     """
     模板序列化器
     """
-    creator = serializers.StringRelatedField()
+    # creator = serializers.StringRelatedField()
+    template_group = ReportGroupSerializer()
+    template_type = ReportTypeSerializer()
 
     class Meta:
         model = Template
         fields = '__all__'
-
 
 class TemplateCreateUpdateSerializer(CustomModelSerializer):
     """
@@ -97,7 +156,6 @@ class TemplateCreateUpdateSerializer(CustomModelSerializer):
         model = Template
         fields = '__all__'
 
-
 # ===========================
 # 任务管理模块序列化器
 # ===========================
@@ -106,13 +164,13 @@ class ScheduledTaskSerializer(CustomModelSerializer):
     """
     定时任务序列化器
     """
-    template = serializers.StringRelatedField()
-    creator = serializers.StringRelatedField()
+    template = TemplateSerializer()
+    # creator = serializers.StringRelatedField()
+    frequency = FrequencySerializer(read_only=True)
 
     class Meta:
         model = ScheduledTask
         fields = '__all__'
-
 
 class ScheduledTaskCreateUpdateSerializer(CustomModelSerializer):
     """
@@ -122,7 +180,6 @@ class ScheduledTaskCreateUpdateSerializer(CustomModelSerializer):
     class Meta:
         model = ScheduledTask
         fields = '__all__'
-
 
 # ===========================
 # 任务日志模块序列化器
@@ -137,7 +194,6 @@ class TaskLogSerializer(CustomModelSerializer):
         model = TaskLog
         fields = '__all__'
 
-
 class TaskLogCreateUpdateSerializer(CustomModelSerializer):
     """
     创建/更新任务日志时的序列化器
@@ -147,7 +203,6 @@ class TaskLogCreateUpdateSerializer(CustomModelSerializer):
         model = TaskLog
         fields = '__all__'
 
-
 # ===========================
 # 中间数据模块序列化器
 # ===========================
@@ -156,12 +211,11 @@ class IntermediateDataSerializer(CustomModelSerializer):
     """
     中间数据序列化器
     """
-    job = serializers.StringRelatedField()
+    job = ScheduledTaskSerializer(read_only=True)
 
     class Meta:
         model = IntermediateData
         fields = '__all__'
-
 
 class IntermediateDataCreateUpdateSerializer(CustomModelSerializer):
     """
@@ -172,7 +226,6 @@ class IntermediateDataCreateUpdateSerializer(CustomModelSerializer):
         model = IntermediateData
         fields = '__all__'
 
-
 # ===========================
 # 系统管理模块-邮件管理子模块序列化器
 # ===========================
@@ -181,12 +234,11 @@ class EmailConfigurationSerializer(CustomModelSerializer):
     """
     邮件配置序列化器
     """
-    creator = serializers.StringRelatedField()
+    # creator = serializers.StringRelatedField()
 
     class Meta:
         model = EmailConfiguration
         fields = '__all__'
-
 
 class EmailConfigurationCreateUpdateSerializer(CustomModelSerializer):
     """

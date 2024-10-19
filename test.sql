@@ -1,73 +1,67 @@
--- -------------------------------------
--- 1. 插入用户数据 (假设存在一个 `dvadmin_report_users` 表)
--- -------------------------------------
--- INSERT INTO `dvadmin_report_users` (`id`, `username`, `email`, `create_datetime`, `update_datetime`) VALUES
--- (1, 'admin', 'admin@example.com', '2023-01-01 09:00:00', '2023-01-01 09:00:00'),
--- (2, 'alice', 'alice@example.com', '2023-01-05 10:00:00', '2023-01-05 10:00:00'),
--- (3, 'bob', 'bob@example.com', '2023-02-10 11:00:00', '2023-02-10 11:00:00'),
--- (4, 'charlie', 'charlie@example.com', '2023-03-15 12:00:00', '2023-03-15 12:00:00'),
--- (5, 'david', 'david@example.com', '2023-04-20 13:00:00', '2023-04-20 13:00:00');
+-- ReportType 数据 t6NCtd6GJiRsCCGZ
+INSERT INTO dvadmin_report_types (name, description, create_datetime, update_datetime) VALUES
+('日报', '每日简报', NOW(), NOW()),
+('周报', '每周简报', NOW(), NOW()),
+('月报', '每月简报', NOW(), NOW()),
+('季报', '每季简报', NOW(), NOW()),
+('年报', '每年简报', NOW(), NOW()),
+('其他简报', '其他简报', NOW(), NOW());
 
--- -------------------------------------
--- 2. 插入模板数据 (`dvadmin_report_template` 表)
--- -------------------------------------
--- INSERT INTO `dvadmin_report_templates` (`id`, `template_type`, `template_name`, `content`, `creator_id`, `create_datetime`, `update_datetime`) VALUES
--- (1, '日报', '基础日报模板', '<h1>基础日报</h1><p>内容...</p>', 1, '2023-01-05 08:00:00', '2023-03-15 10:00:00'),
--- (2, '周报', '漏洞扫描周报模板', '<h1>漏洞扫描周报</h1><p>详细内容...</p>', 2, '2023-02-01 09:00:00', '2023-04-10 11:00:00'),
--- (3, '月报', '高级月报模板', '<h1>高级月报</h1><p>详细内容...</p>', 3, '2023-03-01 10:00:00', '2023-05-05 12:00:00');
+-- ReportGroup 数据
+INSERT INTO dvadmin_report_groups (name, description, create_datetime, update_datetime) VALUES
+('安全漏洞', '安全相关简报', NOW(), NOW()),
+('钓鱼邮件', '钓鱼邮件', NOW(), NOW());
 
--- -- -------------------------------------
--- -- 3. 插入简报数据 (`dvadmin_report_report` 表)
--- -- -------------------------------------
--- INSERT INTO `dvadmin_report_reports` (`id`, `title`, `type`, `summary`, `content`, `report_date`, `creator_id`, `create_datetime`, `update_datetime`) VALUES
--- (1, '2023年安全漏洞周报', '周报', '本周发现5个新的安全漏洞...', '<p>详细内容...</p>', '2023-04-24', 3, '2023-04-25 10:30:00', '2023-04-25 10:30:00'),
--- (2, '2023年第四季度安全漏洞月报', '月报', '第四季度共发现15个安全漏洞，主要集中在...', '<h1>第四季度安全漏洞概述</h1><p>详细内容...</p>', '2023-12-31', 5, '2023-12-01 09:00:00', '2023-12-01 09:00:00'),
--- (3, '2023年1月安全漏洞日报', '日报', '1月份发现3个安全漏洞...', '<p>详细日报内容...</p>', '2023-01-31', 2, '2023-01-31 08:00:00', '2023-01-31 08:00:00'),
--- (4, '2023年2月安全漏洞日报', '日报', '2月份发现4个安全漏洞...', '<p>详细日报内容...</p>', '2023-02-28', 2, '2023-02-28 08:00:00', '2023-02-28 08:00:00');
+-- Frequency 数据
+INSERT INTO dvadmin_report_frequencies (name, cron_expression, description, is_active, create_datetime, update_datetime) VALUES
+('每天8点', '0 8 * * *', '每天早上8点执行', TRUE, NOW(), NOW()),
+('每周一10点', '0 10 * * 1', '每周一上午10点执行', TRUE, NOW(), NOW()),
+('每月1号12点', '0 12 1 * *', '每月1号中午12点执行', TRUE, NOW(), NOW());
 
--- -- -------------------------------------
--- -- 4. 插入邮件发送记录数据 (`dvadmin_report_email_send_record` 表)
--- -- -------------------------------------
--- INSERT INTO `dvadmin_report_email_send_records` (`id`, `report_id`, `sent_at`, `recipients`, `status`, `create_datetime`, `update_datetime`) VALUES
--- (1001, 1, '2023-04-26 15:00:00', 'user1@example.com;user2@example.com', '成功', '2023-04-26 15:00:00', '2023-04-26 15:00:00'),
--- (1002, 1, '2023-05-03 15:00:00', 'user3@example.com', '失败', '2023-05-03 15:00:00', '2023-05-03 15:00:00'),
--- (1003, 2, '2023-12-02 10:00:00', 'manager@example.com', '成功', '2023-12-02 10:00:00', '2023-12-02 10:00:00'),
--- (1004, 3, '2023-02-01 09:00:00', 'alice@example.com;bob@example.com', '成功', '2023-02-01 09:00:00', '2023-02-01 09:00:00');
+-- Users 数据（假设已存在，这里使用示例ID）
+-- INSERT INTO dvadmin_system_users (username, password, email) VALUES
+-- ('admin', 'hashed_password', 'admin@example.com');
 
--- -- -------------------------------------
--- -- 5. 插入定时任务数据 (`dvadmin_report_scheduled_task` 表)
--- -- -------------------------------------
--- INSERT INTO `dvadmin_report_scheduled_tasks` (`id`, `name`, `frequency`, `template_id`, `status`, `creator_id`, `create_datetime`, `update_datetime`) VALUES
--- (1, '每日安全简报发送', '0 8 * * *', 1, '运行中', 1, '2023-01-10 08:00:00', '2023-05-02 10:30:00'),
--- (2, '每周漏洞扫描', '0 10 * * 1', 2, '运行中', 2, '2023-05-01 09:00:00', '2023-05-01 09:00:00'),
--- (3, '每月安全报告生成', '0 9 1 * *', 3, '暂停', 3, '2023-06-01 09:00:00', '2023-06-01 09:00:00');
+-- Report 数据
+INSERT INTO dvadmin_report_reports (title, type_id, summary, content, report_date, report_group_id, creator_id, create_datetime, update_datetime) VALUES
+('日常安全简报', 1, '今日安全概况', '详细内容...', CURRENT_DATE, 1, 1, NOW(), NOW()),
+('周度运维报告', 2, '本周运维总结', '详细内容...', CURRENT_DATE, 2, 1, NOW(), NOW()),
+('月度管理层简报', 3, '本月管理概要', '详细内容...', CURRENT_DATE, 2, 1, NOW(), NOW());
 
--- -- -------------------------------------
--- -- 6. 插入任务日志数据 (`dvadmin_report_task_log` 表)
--- -- -------------------------------------
--- INSERT INTO `dvadmin_report_task_logs` (`id`, `job_id`, `task_name`, `start_time`, `end_time`, `result`, `details`, `create_datetime`, `update_datetime`) VALUES
--- (2001, 'celery-task-123', '每日安全简报发送', '2023-04-25 08:00:00', '2023-04-25 08:01:00', '成功', 
---     '{"job_id": "celery-task-123", "task_name": "每日安全简报发送", "start_time": "2023-04-25T08:00:00Z", "end_time": "2023-04-25T08:01:00Z", "运行参数": {"report_date": "2023-04-25"}, "执行结果": "简报发送成功。", "错误信息": null}', 
---     '2023-04-25 08:00:00', '2023-04-25 08:01:00'),
--- (2002, 'celery-task-124', '每日安全简报发送', '2023-04-26 08:00:00', '2023-04-26 08:01:00', '成功', 
---     '{"job_id": "celery-task-124", "task_name": "每日安全简报发送", "start_time": "2023-04-26T08:00:00Z", "end_time": "2023-04-26T08:01:00Z", "运行参数": {"report_date": "2023-04-26"}, "执行结果": "简报发送成功。", "错误信息": null}', 
---     '2023-04-26 08:00:00', '2023-04-26 08:01:00'),
--- (2003, 'celery-task-125', '每周漏洞扫描', '2023-05-01 10:00:00', '2023-05-01 10:05:00', '成功', 
---     '{"job_id": "celery-task-125", "task_name": "每周漏洞扫描", "start_time": "2023-05-01T10:00:00Z", "end_time": "2023-05-01T10:05:00Z", "运行参数": {"scan_week": "2023-W18"}, "执行结果": "漏洞扫描完成。", "错误信息": null}', 
---     '2023-05-01 10:00:00', '2023-05-01 10:05:00');
+-- EmailSendRecord 数据
+INSERT INTO dvadmin_report_email_send_records (report_id, sent_at, recipients, status, create_datetime, update_datetime) VALUES
+(1, NOW(), 'user1@example.com;user2@example.com', '成功', NOW(), NOW()),
+(2, NOW(), 'user3@example.com;user4@example.com', '成功', NOW(), NOW()),
+(3, NOW(), 'manager@example.com', '成功', NOW(), NOW());
 
--- -- -------------------------------------
--- -- 7. 插入中间数据 (`dvadmin_report_intermediate_data` 表)
--- -- -------------------------------------
--- INSERT INTO `dvadmin_report_intermediate_datas` (`id`, `date`, `internal_attacks`, `external_attacks`, `other_metrics`, `job_id`, `create_datetime`, `update_datetime`) VALUES
--- (3001, '2023-04-25', 10, 5, '{"metric1": 100, "metric2": 200}', 1, '2023-04-25 08:00:00', '2023-04-25 08:00:00'),
--- (3002, '2023-04-26', 12, 6, '{"metric1": 110, "metric2": 210}', 1, '2023-04-26 08:00:00', '2023-04-26 08:00:00'),
--- (3003, '2023-05-01', 15, 7, '{"metric1": 120, "metric2": 220}', 2, '2023-05-01 10:00:00', '2023-05-01 10:00:00');
+-- Template 数据
+INSERT INTO dvadmin_report_templates (template_type_id, template_group_id, template_name, content, creator_id, create_datetime, update_datetime) VALUES
+(1, 1, '日报模板', '日报模板内容...', 1, NOW(), NOW()),
+(2, 2, '周报模板', '周报模板内容...', 1, NOW(), NOW()),
+(3, 2, '月报模板', '月报模板内容...', 1, NOW(), NOW());
 
--- -------------------------------------
--- 8. 插入邮件配置数据 (`dvadmin_report_email_configuration` 表)
--- -------------------------------------
-INSERT INTO `dvadmin_report_email_configurations` (`id`, `report_type`, `recipients`, `status`, `creator_id`, `create_datetime`, `update_datetime`) VALUES
-(1, '周报', 'security-team@example.com;admin@example.com', TRUE, 2, '2023-01-15 09:00:00', '2023-04-20 10:00:00'),
-(2, '月报', 'manager@example.com', FALSE, 4, '2023-02-10 11:00:00', '2023-03-22 14:00:00'),
-(3, '日报', 'user1@example.com;user2@example.com', TRUE, 5, '2023-05-05 10:00:00', '2023-05-05 10:00:00');
+-- ScheduledTask 数据
+INSERT INTO dvadmin_report_scheduled_tasks (name, frequency_id, template_id, status, creator_id, create_datetime, update_datetime) VALUES
+('每日安全报告任务', 1, 1, '运行中', 1, NOW(), NOW()),
+('每周运维报告任务', 2, 2, '运行中', 1, NOW(), NOW()),
+('每月管理报告任务', 3, 3, '运行中', 1, NOW(), NOW());
+
+-- TaskLog 数据
+INSERT INTO dvadmin_report_task_logs (job_id, task_name, start_time, end_time, result, parameters, error_info, create_datetime, update_datetime) VALUES
+('job1', '每日安全报告任务', NOW() - INTERVAL '1 hour', NOW(), '成功', '{}', '无', NOW(), NOW()),
+('job2', '每周运维报告任务', NOW() - INTERVAL '2 hour', NOW() - INTERVAL '1 hour', '成功', '{}', '无', NOW(), NOW()),
+('job3', '每月管理报告任务', NOW() - INTERVAL '3 hour', NOW() - INTERVAL '2 hour', '成功', '{}', '无', NOW(), NOW());
+
+-- IntermediateData 数据
+INSERT INTO dvadmin_report_intermediate_datas 
+(date, internal_attacks, external_attacks, other_metrics, job_id, create_datetime, update_datetime) 
+VALUES
+(CURRENT_DATE, 10, 20, '{"metric1": 5, "metric2": 15}', 1, NOW(), NOW()),
+(DATE_SUB(CURRENT_DATE, INTERVAL 1 DAY), 15, 25, '{"metric1": 8, "metric2": 18}', 1, NOW(), NOW()),
+(DATE_SUB(CURRENT_DATE, INTERVAL 2 DAY), 12, 22, '{"metric1": 6, "metric2": 16}', 1, NOW(), NOW());
+
+-- EmailConfiguration 数据
+INSERT INTO dvadmin_report_email_configurations (report_type_id, recipients, status, creator_id, create_datetime, update_datetime) VALUES
+(1, 'security@example.com;manager@example.com', TRUE, 1, NOW(), NOW()),
+(2, 'ops@example.com;manager@example.com', TRUE, 1, NOW(), NOW()),
+(3, 'ceo@example.com;cfo@example.com', TRUE, 1, NOW(), NOW());

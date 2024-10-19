@@ -1,13 +1,17 @@
+import { getReportTypeList, ReportGroup, ReportType } from '../api';
 import { request } from '/@/utils/service';
 
 const BASE_URL = '/api/reports/';
 
+
 export interface Report {
     id: number;
     title: string;
+    type: ReportType;
+    summary: string;
     content: string;
-    report_type: string;
-    status: string;
+    report_date: string;  // 使用字符串表示日期，如果需要可以在前端转换为 Date 对象
+    report_group: ReportGroup;
     creator: {
         id: number;
         username: string;
@@ -15,6 +19,7 @@ export interface Report {
     create_datetime: string;
     update_datetime: string;
 }
+
 
 export interface ReportQuery {
     page?: number;
@@ -80,10 +85,7 @@ export const sendReport = (id: number) => {
 };
 
 export const getReportTypes = () => {
-    return request({
-        url: `${BASE_URL}report_types/`,
-        method: 'get'
-    });
+    return  getReportTypeList();
 };
 
 export const getReportStatuses = () => {

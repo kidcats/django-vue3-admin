@@ -47,10 +47,19 @@ INSERT INTO dvadmin_report_scheduled_tasks (name, frequency_id, template_id, sta
 ('每月管理报告任务', 3, 3, '运行中', 1, NOW(), NOW());
 
 -- TaskLog 数据
-INSERT INTO dvadmin_report_task_logs (job_id, task_name, start_time, end_time, result, parameters, error_info, create_datetime, update_datetime) VALUES
-('job1', '每日安全报告任务', NOW() - INTERVAL '1 hour', NOW(), '成功', '{}', '无', NOW(), NOW()),
-('job2', '每周运维报告任务', NOW() - INTERVAL '2 hour', NOW() - INTERVAL '1 hour', '成功', '{}', '无', NOW(), NOW()),
-('job3', '每月管理报告任务', NOW() - INTERVAL '3 hour', NOW() - INTERVAL '2 hour', '成功', '{}', '无', NOW(), NOW());
+INSERT INTO dvadmin_report_task_logs 
+(job_id, task_name, start_time, end_time, result, parameters, error_info)
+VALUES
+('job001', '数据备份任务', '2023-05-01 10:00:00', '2023-05-01 10:30:00', '成功', '{"backup_type": "full", "destination": "cloud_storage"}', '无'),
+('job002', '系统更新任务', '2023-05-02 14:00:00', '2023-05-02 15:00:00', '成功', '{"version": "2.1.0", "restart_required": true}', '无'),
+('job003', '日志清理任务', '2023-05-03 01:00:00', '2023-05-03 01:15:00', '成功', '{"older_than_days": 30, "log_type": "system"}', '无'),
+('job004', '数据同步任务', '2023-05-04 09:00:00', '2023-05-04 09:45:00', '失败', '{"source": "main_db", "destination": "replica_db"}', '网络连接中断'),
+('job005', '安全扫描任务', '2023-05-05 22:00:00', '2023-05-06 02:00:00', '成功', '{"scan_type": "full", "include_network": true}', '无'),
+('job006', '性能优化任务', '2023-05-06 03:00:00', NULL, '执行中', '{"target_services": ["web_server", "database"]}', '无'),
+('job007', '用户数据导出', '2023-05-07 11:00:00', '2023-05-07 11:30:00', '成功', '{"format": "csv", "user_group": "active"}', '无'),
+('job008', '系统监控任务', '2023-05-08 00:00:00', '2023-05-08 23:59:59', '成功', '{"metrics": ["cpu", "memory", "disk"], "interval": "5m"}', '无'),
+('job009', '数据库索引重建', '2023-05-09 02:00:00', '2023-05-09 04:00:00', '失败', '{"database": "main_db", "tables": ["users", "orders"]}', '磁盘空间不足'),
+('job010', '自动化测试运行', '2023-05-10 09:00:00', NULL, '执行中', '{"test_suite": "regression", "environment": "staging"}', '无');
 
 -- IntermediateData 数据
 INSERT INTO dvadmin_report_intermediate_datas 

@@ -198,14 +198,7 @@ class ScheduledTask(CoreModel):
     ]
 
     name = models.CharField(max_length=255, verbose_name="任务名称", help_text="任务名称")
-    frequency = models.ForeignKey(
-        Frequency,
-        on_delete=models.PROTECT,
-        related_name='report_scheduled_tasks',
-        verbose_name="频率",
-        help_text="选择执行频率",
-        db_constraint=False,
-    )
+    frequency = models.CharField(max_length=255, verbose_name="运行频率", help_text="运行频率")
     template = models.ForeignKey(
         Template,
         on_delete=models.SET_NULL,

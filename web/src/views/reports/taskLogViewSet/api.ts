@@ -8,7 +8,7 @@ export interface TaskLog {
     task_name: string;
     start_time: string;
     end_time: string | null;
-    result: '成功' | '失败' | '执行中';
+    result: string;
     parameters: Record<string, any>;
     error_info: string;
     create_datetime: string;
@@ -63,11 +63,27 @@ export async function remove(id: number) {
     });
 }
 
+export async function pause(id: number) {
+    return request({
+        url: `${BASE_URL}${id}/pause/`,
+        method: 'patch'
+    });
+}
+
+export async function resume(id: number) {
+    return request({
+        url: `${BASE_URL}${id}/resume/`,
+        method: 'patch'
+    });
+}
+
 // 如果你想保持原来的对象结构，也可以这样导出
 export const taskLogApi = {
     getList,
     getOne,
     create,
     update,
-    remove
+    remove,
+    pause,
+    resume,
 };

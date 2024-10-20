@@ -7,7 +7,7 @@ const BASE_URL = '/api/scheduled-tasks/';
 export interface ScheduledTask {
     id: number;
     name: string;
-    frequency: FrequencyRow;
+    frequency: string;
     status: string;
     create_datetime: string;
     update_datetime: string;
@@ -82,4 +82,3 @@ export async function resume(id: number) {
         method: 'patch'
     });
 }
-

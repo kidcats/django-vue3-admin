@@ -1,22 +1,22 @@
 // crudOptions.ts
-import { 
+import {
     compute,
-    CreateCrudOptionsProps, 
-    CreateCrudOptionsRet, 
-    dict, 
+    CreateCrudOptionsProps,
+    CreateCrudOptionsRet,
+    dict,
     EditReq,
     Dict
 } from "@fast-crud/fast-crud";
 import { ElMessage } from 'element-plus';
 import cronstrue from 'cronstrue';
 import 'cronstrue/locales/zh_CN';
-import { 
-    create, 
+import {
+    create,
     getList,
-    pause, 
-    remove, 
-    resume, 
-    update 
+    pause,
+    remove,
+    resume,
+    update
 } from "./api";
 import { getList as getTemplateList, Template } from "../templateViewSet/api";
 import { TemplateRow } from "../templateViewSet/crud";
@@ -25,7 +25,7 @@ import { FrequencyRow, getReportTypeList, ReportGroupRow } from "../api";
 export type ScheduledTaskRow = {
     id?: number;
     name?: string;
-    frequency?: FrequencyRow;
+    frequency?: string;
     template?: TemplateRow;
     status?: string;
     create_datetime?: string;
@@ -33,9 +33,13 @@ export type ScheduledTaskRow = {
     report_template?: ReportGroupRow;
 } & Record<string, any>;
 
-function generateCronDescription(cronExpression: string): string {
+function generateCronDescription(cronExpression: string | undefined): string {
     try {
-        return cronstrue.toString(cronExpression, { locale: "zh_CN" });
+        if (cronExpression) {
+            return cronstrue.toString(cronExpression, { locale: "zh_CN" });
+        }else {
+            return '';
+        }
     } catch (error) {
         console.error('解析 Cron 表达式时出错:', error);
         return '无效的 Cron 表达式';
@@ -43,16 +47,15 @@ function generateCronDescription(cronExpression: string): string {
 }
 
 export default function ({ crudExpose, context }: CreateCrudOptionsProps<ScheduledTaskRow>): CreateCrudOptionsRet<ScheduledTaskRow> {
-    
+
     const editRequest = ({ form, row }: { form: any, row: ScheduledTaskRow }) => {
-        const id = Number(row.id);
-        if (isNaN(id)) {
-          throw new Error('Invalid id for update operation');
+        if (form.id == null) {
+            form.id = row.id;
         }
-        const { id: _, ...updateData } = form;
+        const { id, ...updateData } = form;
         return update(id, updateData);
     }
-    
+
     return {
         crudOptions: {
             request: {
@@ -67,12 +70,12 @@ export default function ({ crudExpose, context }: CreateCrudOptionsProps<Schedul
                     type: "text",
                     search: { show: true },
                 },
-                'frequency.cron_expression': {
+                frequency: {
                     title: "执行频率",
                     type: "component",
                     column: {
                         formatter: (data: any) => {
-                            return (data.row.frequency?.description || '');
+                            return generateCronDescription(data.row.frequency || '');
                         }
                     },
                     form: {
@@ -92,24 +95,16 @@ export default function ({ crudExpose, context }: CreateCrudOptionsProps<Schedul
                         ],
                         helper: {
                             render({ form }) {
-                                const cronExpr = form?.frequency?.cron_expression || '';
+                                const cronExpr = form.frequency;
+
                                 const description = generateCronDescription(cronExpr);
                                 return (
                                     <div>
-                                        <p>Cron 表达式描述: {description}</p>
+                                        <p>Cron 表达式描述: {description || ''}</p>
                                     </div>
                                 );
                             }
                         },
-                    },
-                    valueBuilder({ form, row }: { form: any, row: ScheduledTaskRow }) {
-                        form.frequency = form.frequency || {};
-                        form.frequency.cron_expression = row.frequency?.cron_expression || '* * * * *';
-                    },
-                    valueResolve({ form, row }: { form: any, row: ScheduledTaskRow }) {
-                        if(row.frequency){
-                        row.frequency = row.frequency || {};
-                        row.frequency.cron_expression = form.frequency.cron_expression;}
                     },
                 },
                 create_datetime: {
@@ -129,20 +124,20 @@ export default function ({ crudExpose, context }: CreateCrudOptionsProps<Schedul
                     type: "dict-text",
                     form: { show: false },
                 },
-                template: {
+                'template.template_name': {
                     title: "模板分组",
                     type: "dict-select",
                     dict: dict({
-                        getData: getTemplateList,
-                    }),
-                    column: {
-                        formatter: (data: any) => {
-                            return (data.row.template?.template_name || '');
+                        url: '/api/templates/',
+                        value: 'id',
+                        label: 'template_name',
+                        onReady: (dictsData) => {
+                          console.log('Template Dict:', dictsData);
                         }
-                    },
+                      }),
                     form: {
-                        rules: [{ required: true, message: '请选择模板分组', trigger: 'change' }],
-                    },
+                        key: ["template", "template_name"],
+                    }
                 },
             },
             search: {
@@ -158,11 +153,21 @@ export default function ({ crudExpose, context }: CreateCrudOptionsProps<Schedul
             toolbar: {
                 show: false,
             },
+            form: {
+                beforeSubmit: ({ form }) => {
+                  console.log('BeforeSubmit - form:', form);
+                  if (form.template) {
+                    // 确保只发送 id
+                    form.template = typeof form.template === 'object' ? form.template.template_name : form.template;
+                  }
+                  return form;
+                }
+            },
             rowHandle: {
                 width: 240,
                 buttons: {
                     view: { show: false },
-                    edit: { 
+                    edit: {
                         text: '编辑',
                     },
                     remove: { text: '删除' },

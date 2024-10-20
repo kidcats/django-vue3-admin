@@ -166,7 +166,6 @@ class ScheduledTaskSerializer(CustomModelSerializer):
     """
     template = TemplateSerializer()
     # creator = serializers.StringRelatedField()
-    frequency = FrequencySerializer(read_only=True)
 
     class Meta:
         model = ScheduledTask

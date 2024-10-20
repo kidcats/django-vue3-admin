@@ -26,7 +26,7 @@ import importExcel from '/@/components/importExcel/index.vue'
 
 
 export default defineComponent({    //这里配置defineComponent
-    name: "reportViewSet",   //把name放在这里进行配置了
+    name: "taskLogViewSet",   //把name放在这里进行配置了
 	components: {importExcel},  //注释编号: django-vue3-admin-index552416: 注册组件，把importExcel组件放在这里，这样<template></template>中才能正确的引用到组件
     setup() {   //这里配置了setup()
 

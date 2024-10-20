@@ -245,7 +245,7 @@ class ScheduledTaskViewSet(CustomModelViewSet):
         """
         task = self.get_object()
         if task.status == '暂停':
-            return Response({"detail": "任务已处于暂停状态。"}, status=status.HTTP_400_BAD_REQUEST)
+            return ErrorResponse({"detail": "任务已处于暂停状态。"})
         task.status = '暂停'
         task.save()
         return SuccessResponse({"detail": "任务已暂停。"})
@@ -257,7 +257,7 @@ class ScheduledTaskViewSet(CustomModelViewSet):
         """
         task = self.get_object()
         if task.status == '运行中':
-            return Response({"detail": "任务已处于运行中状态。"}, status=status.HTTP_400_BAD_REQUEST)
+            return ErrorResponse({"detail": "任务已处于运行中状态。"})
         task.status = '运行中'
         task.save()
         return SuccessResponse({"detail": "任务已恢复运行。"})
@@ -280,6 +280,30 @@ class TaskLogViewSet(CustomModelViewSet):
     update_serializer_class = TaskLogCreateUpdateSerializer
     search_fields = ['job_id', 'task_name', 'result']
     ordering_fields = ['start_time', 'create_datetime', 'update_datetime']
+    
+    @action(detail=True, methods=['patch'])
+    def pause(self, request, pk=None):
+        """
+        暂停定时任务
+        """
+        tasklog = self.get_object()
+        if tasklog.result == '暂停':
+            return ErrorResponse({"detail": "任务已处于暂停状态。"})
+        tasklog.status = '暂停'
+        tasklog.save()
+        return SuccessResponse({"detail": "任务已暂停。"})
+
+    @action(detail=True, methods=['patch'])
+    def resume(self, request, pk=None):
+        """
+        恢复定时任务
+        """
+        tasklog = self.get_object()
+        if tasklog.result == '运行中':
+            return ErrorResponse({"detail": "任务已处于运行中状态。"})
+        tasklog.result = '运行中'
+        tasklog.save()
+        return SuccessResponse({"detail": "任务已恢复运行。"})
 
 # ===========================
 # 中间数据模块视图集

@@ -6,7 +6,7 @@ const BASE_URL = '/api/email-configurations/';
 
 export interface EmailConfiguration {
     id: number;
-    report_type: string;
+    report_type: ReportType;
     recipients: string;
     status: boolean;
     creator_id: number;

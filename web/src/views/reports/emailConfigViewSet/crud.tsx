@@ -12,34 +12,41 @@ export type EmailConfigRow = {
     creator_id?: number;
     create_datatime?: string;
     update_datatime?: string;
-};
+}& Record<string, any>;
 
 export default function ({ crudExpose, context }: CreateCrudOptionsProps<EmailConfigRow>): CreateCrudOptionsRet<EmailConfigRow> {
     const selectedRowKeys = ref([]);
     context.selectedRowKeys = selectedRowKeys;
-
+    const editRequest = ({ form, row }: { form: any, row: EmailConfigRow }) => {
+        if (form.id == null) {
+            form.id = row.id;
+        }
+        const { id, ...updateData } = form;
+        return update(id, updateData);
+    }
     return {
         crudOptions: {
             request: {
                 pageRequest: getList,
                 addRequest: create,
-                editRequest: update,
+                editRequest,
                 delRequest: remove,
             },
             columns: {
-                report_type: {
+                'report_type.name': {
                     title: "简报类型",
                     type: "dict-select",
                     dict: dict({
-                        getData: getReportTypes,
-                    }),
-                    column: {
-                        width: 80,
-                    },
+                        url: '/api/email-configurations/',
+                        value: 'id',
+                        label: 'name',
+                        onReady: (dictsData) => {
+                          console.log('email_config Dict:', dictsData);
+                        }
+                      }),
                     form: {
-                        rules: [{ required: true, message: '请选择简报类型', trigger: 'change' }],
-                    },
-                    search: { show: false },
+                        key: ["report_type", "name"],
+                    }
                 },
                 recipients: {
                     title: "邮件接收人",
@@ -118,7 +125,7 @@ export default function ({ crudExpose, context }: CreateCrudOptionsProps<EmailCo
                     edit: { show: true },
                     remove: {
                         show: true,
-                        type: 'text',
+                        type: 'danger',
                         props: { type: 'danger' },
                     },
                 },

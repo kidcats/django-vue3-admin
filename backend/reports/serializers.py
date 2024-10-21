@@ -107,6 +107,10 @@ class ReportSendSerializer(CustomModelSerializer):
         child=serializers.EmailField(),
         help_text="邮件接收人列表，多个邮箱使用数组格式提供"
     )
+    
+    class Meta:
+        model = Report
+        fields = '__all__'
 
 # ===========================
 # 邮件发送记录模块序列化器

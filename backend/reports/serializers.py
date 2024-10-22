@@ -120,7 +120,8 @@ class EmailSendRecordSerializer(CustomModelSerializer):
     """
     邮件发送记录序列化器
     """
-    report = ReportSerializer(read_only=True)
+    # report_id = ReportSerializer(read_only=True)
+    
 
     class Meta:
         model = EmailSendRecord
@@ -238,6 +239,7 @@ class EmailConfigurationSerializer(CustomModelSerializer):
     邮件配置序列化器
     """
     # creator = serializers.StringRelatedField()
+    report_type = ReportTypeSerializer()
 
     class Meta:
         model = EmailConfiguration

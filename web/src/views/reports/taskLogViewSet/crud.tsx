@@ -113,7 +113,7 @@ export default function ({ crudExpose }: CreateCrudOptionsProps<TaskLog>): Creat
     text-align: center;
     margin-top: 20px;
   }
-      </style>
+  </style>
       <div class="task-details-container">
         <div class="task-title">任务详情</div>
         <table class="task-details-table">

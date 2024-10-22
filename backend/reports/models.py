@@ -6,6 +6,8 @@ from django.core.validators import RegexValidator
 from django.conf import settings
 from dvadmin.system.models import Users
 from dvadmin.utils.models import CoreModel, table_prefix
+from django_celery_beat.models import PeriodicTask, CrontabSchedule
+import json
 
 
 
@@ -187,9 +189,111 @@ class Template(CoreModel):
         return self.template_name
 
 
+
+
 # ===========================
 # 任务管理模块模型
 # ===========================
+
+class QueryConfig(models.Model):
+    name = models.CharField(max_length=100)
+    query = models.TextField()
+    product = models.CharField(max_length=100)
+    protection_type = models.JSONField()
+    severity = models.JSONField()
+
+class Task(CoreModel):
+    STATUS_CHOICES = (
+        ('active', '活动'),
+        ('paused', '暂停'),
+        ('completed', '已完成'),
+        ('error', '错误'),
+    )
+
+    name = models.CharField(max_length=255, unique=True, verbose_name="任务名称")
+    report = models.OneToOneField(Report, on_delete=models.CASCADE, related_name='task', verbose_name="关联的简报")
+    template = models.ForeignKey(Template, on_delete=models.PROTECT, related_name='tasks', verbose_name="使用的模板")
+    periodic_task = models.OneToOneField(PeriodicTask, 
+                                         on_delete=models.CASCADE, 
+                                         null=True, blank=True, verbose_name="定时任务",
+                                         related_name='report_task'  # 添加这一行
+                                         )
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='active', verbose_name="任务状态")
+    last_run = models.DateTimeField(null=True, blank=True, verbose_name="上次运行时间")
+    next_run = models.DateTimeField(null=True, blank=True, verbose_name="下次运行时间")
+    creator = models.ForeignKey(
+        Users,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='report_task',
+        verbose_name="创建者",
+        help_text="创建者",
+        db_constraint=False,
+    )
+    class Meta:
+        db_table = table_prefix + "report_tasks"
+        verbose_name = "任务"
+        verbose_name_plural = verbose_name
+        ordering = ("create_datetime",)
+
+    def __str__(self):
+        return self.name
+
+    def save(self, *args, **kwargs):
+        is_new = self.pk is None
+        super().save(*args, **kwargs)
+        if is_new or not self.periodic_task:
+            self.create_or_update_periodic_task()
+
+    def create_or_update_periodic_task(self):
+        schedule, _ = CrontabSchedule.objects.get_or_create(
+            minute=self.report.frequency.cron_expression.split()[0],
+            hour=self.report.frequency.cron_expression.split()[1],
+            day_of_month=self.report.frequency.cron_expression.split()[2],
+            month_of_year=self.report.frequency.cron_expression.split()[3],
+            day_of_week=self.report.frequency.cron_expression.split()[4],
+        )
+        
+        if self.periodic_task:
+            self.periodic_task.crontab = schedule
+            self.periodic_task.name = f'Generate and send report: {self.name}'
+            self.periodic_task.task = 'your_app.tasks.generate_and_send_report'
+            self.periodic_task.args = json.dumps([self.id])
+            self.periodic_task.save()
+        else:
+            self.periodic_task = PeriodicTask.objects.create(
+                crontab=schedule,
+                name=f'Generate and send report: {self.name}',
+                task='your_app.tasks.generate_and_send_report',
+                args=json.dumps([self.id]),
+            )
+            self.save()
+
+    def delete(self, *args, **kwargs):
+        if self.periodic_task:
+            self.periodic_task.delete()
+        super().delete(*args, **kwargs)
+
+    def pause(self):
+        if self.periodic_task:
+            self.periodic_task.enabled = False
+            self.periodic_task.save()
+        self.status = 'paused'
+        self.save()
+
+    def resume(self):
+        if self.periodic_task:
+            self.periodic_task.enabled = True
+            self.periodic_task.save()
+        self.status = 'active'
+        self.save()
+
+    def update_next_run(self):
+        if self.periodic_task:
+            self.next_run = self.periodic_task.schedule.next()
+            self.save()
+
 
 class ScheduledTask(CoreModel):
     STATUS_CHOICES = [
@@ -198,7 +302,10 @@ class ScheduledTask(CoreModel):
     ]
 
     name = models.CharField(max_length=255, verbose_name="任务名称", help_text="任务名称")
-    frequency = models.CharField(max_length=255, verbose_name="运行频率", help_text="运行频率")
+    cron_expression = models.CharField(max_length=255, verbose_name="运行频率", help_text="运行频率")
+    # query_config = models.ForeignKey(QueryConfig, on_delete=models.CASCADE)
+    is_active = models.BooleanField(default=False)
+    last_run = models.DateTimeField(null=True, blank=True)
     template = models.ForeignKey(
         Template,
         on_delete=models.SET_NULL,

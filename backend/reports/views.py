@@ -27,7 +27,9 @@ from dvadmin.utils.viewset import CustomModelViewSet
 from django.core.mail import send_mail
 from django.conf import settings
 import json
+import logging
 
+logger = logging.getLogger(__name__)
 # ===========================
 # 报告类型模块视图集
 # ===========================
@@ -186,6 +188,22 @@ class EmailSendRecordViewSet(CustomModelViewSet):
     update_serializer_class = EmailSendRecordCreateUpdateSerializer
     search_fields = ['report__title', 'recipients', 'status']
     ordering_fields = ['sent_at', 'create_datetime', 'update_datetime']
+    
+    
+    @action(detail=False, methods=['get'])
+    def report_history(self, request):
+        """
+        获取特定报告的邮件发送历史
+        """
+        report = request.query_params.get('id')
+        if not report:
+            return ErrorResponse(data=None, msg="报告ID是必需的")
+
+        queryset = self.queryset.filter(report=report)
+        # queryset = self.filter_queryset(queryset)
+        
+        serializer = self.get_serializer(queryset, many=True)
+        return SuccessResponse(data=serializer.data, msg="返回报告的邮件发送历史")
 
 # ===========================
 # 模板管理模块视图集
@@ -206,6 +224,15 @@ class TemplateViewSet(CustomModelViewSet):
     update_serializer_class = TemplateCreateUpdateSerializer
     search_fields = ['template_name', 'template_type', 'content', 'template_group']
     ordering_fields = ['id', 'create_datetime', 'update_datetime']
+    
+    def create(self, request, *args, **kwargs):
+        logger.info(f"Create method - Request data: {request.data}")
+        form_data = request.data.get('form', {})
+        serializer = self.get_serializer(data=form_data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return SuccessResponse(serializer.data,headers=headers)
     
     @action(detail=False, methods=['get'])
     def template_group_type(self, request):
@@ -235,8 +262,17 @@ class ScheduledTaskViewSet(CustomModelViewSet):
     serializer_class = ScheduledTaskSerializer
     create_serializer_class = ScheduledTaskCreateUpdateSerializer
     update_serializer_class = ScheduledTaskCreateUpdateSerializer
-    search_fields = ['name', 'frequency__name', 'status']
+    search_fields = ['name', 'cron_expression', 'status']
     ordering_fields = ['id', 'create_datetime', 'update_datetime']
+    
+    def create(self, request, *args, **kwargs):
+        logger.info(f"Create method - Request data: {request.data}")
+        form_data = request.data.get('form', {})
+        serializer = self.get_serializer(data=form_data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return SuccessResponse(serializer.data,headers=headers)
 
     @action(detail=True, methods=['patch'])
     def pause(self, request, pk=None):

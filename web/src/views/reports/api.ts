@@ -16,12 +16,14 @@ export type CoreModelRow = {
 
 // ReportType 模型对应的类型
 export type ReportTypeRow = CoreModelRow & {
+    id:number;
     name: string;
     description: string;
 };
 
 // ReportGroup 模型对应的类型
 export type ReportGroupRow = CoreModelRow & {
+    id:number;
     name: string;
     description: string;
 };

@@ -62,7 +62,7 @@ INSTALLED_APPS = [
     "dvadmin.system",
     'django_celery_beat',
     'django_celery_results',
-    'dvadmin3_celery',
+    # 'dvadmin3_celery',
 ]
 
 My_Apps = [

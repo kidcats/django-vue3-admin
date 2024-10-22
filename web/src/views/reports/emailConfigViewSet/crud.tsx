@@ -6,7 +6,7 @@ import { ReportTypeRow } from "../api";
 
 export type EmailConfigRow = {
     id?: number;
-    report_type?: ReportTypeRow;
+    report_type?: ReportTypeRow | string | number;
     recipients?: string;
     status?: boolean;
     creator_id?: number;
@@ -34,14 +34,14 @@ export default function ({ crudExpose, context }: CreateCrudOptionsProps<EmailCo
             },
             columns: {
                 'report_type.name': {
-                    title: "简报类型",
+                    title: "模板分组",
                     type: "dict-select",
                     dict: dict({
-                        url: '/api/email-configurations/',
+                        url: 'api/report-type',
                         value: 'id',
                         label: 'name',
                         onReady: (dictsData) => {
-                          console.log('email_config Dict:', dictsData);
+                          console.log('report Dict:', dictsData);
                         }
                       }),
                     form: {
@@ -141,6 +141,24 @@ export default function ({ crudExpose, context }: CreateCrudOptionsProps<EmailCo
                         width: '50%',
                     },
                 },
+                beforeSubmit: ({ form }) => {
+                    console.log('BeforeSubmit - form:', form);
+                    if (form.report_type) {
+                      // 确保只发送 id
+                      console.log(form.report_type);
+                      if(typeof form.report_type === "object"){
+                        if(typeof form.report_type.name === "string"){
+                            form.report_type = form.report_type.id;
+                        }else{
+                            form.report_type = form.report_type.name;
+                        }
+                      }
+                      else{
+                        form.report_type = form.report_type;
+                      }
+                    }
+                    return form;
+                  }
             },
             table: {
                 border: true,

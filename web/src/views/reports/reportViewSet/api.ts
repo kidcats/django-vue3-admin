@@ -1,4 +1,5 @@
-import { getReportTypeList, ReportGroup, ReportType } from '../api';
+import { method } from 'lodash';
+import { getReportGroupList, getReportTypeList, ReportGroup, ReportType } from '../api';
 import { request } from '/@/utils/service';
 
 const BASE_URL = '/api/reports/';
@@ -84,8 +85,19 @@ export const sendReport = (id: number) => {
     });
 };
 
+export const getEmailHistory = (id: number) => {
+    return request({
+        url: `api/email-send-records/report_history/?id=${id}`,
+        method: 'get'
+    });
+};
+
 export const getReportTypes = () => {
     return  getReportTypeList();
+};
+
+export const getReportGroups = () => {
+    return  getReportGroupList();
 };
 
 export const getReportStatuses = () => {

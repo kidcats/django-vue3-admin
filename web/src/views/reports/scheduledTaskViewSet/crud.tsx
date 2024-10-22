@@ -18,15 +18,14 @@ import {
     resume,
     update
 } from "./api";
-import { getList as getTemplateList, Template } from "../templateViewSet/api";
 import { TemplateRow } from "../templateViewSet/crud";
-import { FrequencyRow, getReportTypeList, ReportGroupRow } from "../api";
+import { ReportGroupRow } from "../api";
 
 export type ScheduledTaskRow = {
     id?: number;
     name?: string;
-    frequency?: string;
-    template?: TemplateRow;
+    cron_expression?: string;
+    template?: TemplateRow | string | number;
     status?: string;
     create_datetime?: string;
     update_datetime?: string;
@@ -70,12 +69,12 @@ export default function ({ crudExpose, context }: CreateCrudOptionsProps<Schedul
                     type: "text",
                     search: { show: true },
                 },
-                frequency: {
+                cron_expression: {
                     title: "执行频率",
                     type: "component",
                     column: {
                         formatter: (data: any) => {
-                            return generateCronDescription(data.row.frequency || '');
+                            return generateCronDescription(data.row.cron_expression || '');
                         }
                     },
                     form: {
@@ -95,7 +94,7 @@ export default function ({ crudExpose, context }: CreateCrudOptionsProps<Schedul
                         ],
                         helper: {
                             render({ form }) {
-                                const cronExpr = form.frequency;
+                                const cronExpr = form.cron_expression;
 
                                 const description = generateCronDescription(cronExpr);
                                 return (
@@ -148,20 +147,33 @@ export default function ({ crudExpose, context }: CreateCrudOptionsProps<Schedul
                 },
             },
             actionbar: {
-                show: false,
+                buttons: {
+                    add: { show: true },
+                },
             },
             toolbar: {
                 show: false,
             },
             form: {
                 beforeSubmit: ({ form }) => {
-                  console.log('BeforeSubmit - form:', form);
-                  if (form.template) {
-                    // 确保只发送 id
-                    form.template = typeof form.template === 'object' ? form.template.template_name : form.template;
+                    console.log('BeforeSubmit - form:', form);
+                    if (form.template) {
+                      // 确保只发送 id
+                      console.log(form.template);
+                      if(typeof form.template === "object"){
+                        if(typeof form.template.template_name === "string"){
+                            form.template = form.template.id;
+                        }else{
+                            form.template = form.template.template_name;
+                        }
+                      }
+                      else{
+                        form.template = form.template;
+                      }
+                    }
+                    console.log('after  - form:', form);
+                    return form;
                   }
-                  return form;
-                }
             },
             rowHandle: {
                 width: 240,

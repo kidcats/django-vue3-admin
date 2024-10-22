@@ -7,7 +7,7 @@ const BASE_URL = '/api/scheduled-tasks/';
 export interface ScheduledTask {
     id: number;
     name: string;
-    frequency: string;
+    cron_expression: string;
     status: string;
     create_datetime: string;
     update_datetime: string;
@@ -19,7 +19,7 @@ export interface ScheduledTaskQuery {
     page?: number;
     limit?: number;
     name__icontains?: string;
-    frequency__name?: string;
+    cron_expression__name?: string;
     status?: string;
     create_datetime?: string;
     update_datetime?: string;

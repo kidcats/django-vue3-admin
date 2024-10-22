@@ -37,31 +37,33 @@ export default function ({ crudExpose, context }: CreateCrudOptionsProps<Templat
             columns: {
                 'template_type.name': {
                     title: "模板类型",
-                    search: {
-                        show: false,
-                    },
-                    column: {
-                        width: 80,
-                        formatter: (data: any) => {
-                            return (data.row.template_type?.name || '');
+                    type: "dict-select",
+                    dict: dict({
+                        url: 'api/report-type',
+                        value: 'id',
+                        label: 'name',
+                        onReady: (dictsData) => {
+                          console.log('Template Dict:', dictsData);
                         }
-                    },
+                      }),
+                    form: {
+                        key: ["template_type", "name"],
+                    }
                 },
                 'template_group.name': {
                     title: "模板分组",
-                    // type: "dict-select",
-                    // dict: dict({
-                    //     getData: getTemplateGroups,
-                    // }),
-                    column: {
-                        formatter: (data: any) => {
-                            return (data.row.template_group?.name || '');
+                    type: "dict-select",
+                    dict: dict({
+                        url: 'api/report-group',
+                        value: 'id',
+                        label: 'name',
+                        onReady: (dictsData) => {
+                          console.log('Template Dict:', dictsData);
                         }
-                    },
+                      }),
                     form: {
-                        type: "fs-select",
-                        rules: [{ required: true, message: '请选择模板分组', trigger: 'change' }],
-                    },
+                        key: ["template_group", "name"],
+                    }
                 },
                 template_name: {
                     title: "模板名称",
@@ -187,13 +189,37 @@ export default function ({ crudExpose, context }: CreateCrudOptionsProps<Templat
                     },
                 },
                 beforeSubmit: ({ form }) => {
-                    // 在这里处理嵌套数据
-                    if (form) {
-                        form.template_group = form.template_group?.id ;
-                        form.template_type = form.template_type?.id ;
-                        return form;
+                    console.log('BeforeSubmit - form:', form);
+                    if (form.template_type) {
+                      // 确保只发送 id
+                      console.log(form.template_type);
+                      if(typeof form.template_type === "object"){
+                        if(typeof form.template_type.name === "string"){
+                            form.template_type = form.template_type.id;
+                        }else{
+                            form.template_type = form.template_type.name;
+                        }
+                      }
+                      else{
+                        form.template_type = form.template_type;
+                      }
                     }
-                }
+                    if (form.template_group) {
+                        // 确保只发送 id
+                        console.log(form.template_group);
+                        if(typeof form.template_group === "object"){
+                          if(typeof form.template_group.name === "string"){
+                              form.template_group = form.template_group.id;
+                          }else{
+                              form.template_group = form.template_group.name;
+                          }
+                        }
+                        else{
+                          form.template_group = form.template_group;
+                        }
+                      }
+                    return form;
+                  }
             },
             pagination: {
                 pageSize: 20,

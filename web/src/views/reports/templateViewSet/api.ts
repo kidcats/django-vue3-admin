@@ -1,3 +1,4 @@
+import { AddReq } from '@fast-crud/fast-crud';
 import { getReportGroupList, ReportGroupRow, ReportTypeRow } from '../api';
 import { request } from '/@/utils/service';
 
@@ -37,7 +38,7 @@ export const getOne = (id: number) => {
     });
 };
 
-export const create = (data: Partial<Template>) => {
+export const create = (data: AddReq) => {
     return request({
         url: BASE_URL,
         method: 'post',

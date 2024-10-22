@@ -138,7 +138,7 @@ def update_celery_beat_schedule():
                 'task': 'your_app.tasks.generate_and_send_report',
                 'crontab': schedule,
                 'args': [task.id],
-                'enabled': True,
+                'enabled': False,
             }
         )
     

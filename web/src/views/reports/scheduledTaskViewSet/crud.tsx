@@ -26,7 +26,7 @@ export type ScheduledTaskRow = {
     name?: string;
     cron_expression?: string;
     template?: TemplateRow | string | number;
-    status?: string;
+    is_active?: boolean;
     create_datetime?: string;
     update_datetime?: string;
     report_template?: ReportGroupRow;
@@ -118,10 +118,43 @@ export default function ({ crudExpose, context }: CreateCrudOptionsProps<Schedul
                     column: { show: true },
                     form: { show: false },
                 },
-                status: {
+                is_active: {
                     title: "状态",
-                    type: "dict-text",
-                    form: { show: false },
+                    type: "dict-switch",
+                    form: {
+                        component: {
+                          onChange: compute((context) => {
+                            //动态onChange方法测试
+                            return () => {
+                              console.log("onChange", context.form.switch);
+                            };
+                          })
+                        }
+                      },
+                    dict: dict({
+                        data: [
+                            { value: true, label: '启用' },
+                            { value: false, label: '暂停' },
+                        ],
+                    }),
+                    // column: {
+                    //     width:180,
+                    //     component: {
+                    //         name: 'fs-dict-switch',
+                    //         events: {
+                    //             onChange: async ({ row }) => {
+                    //                 try {
+                    //                     await updateStatus(row.id!, row.status!);
+                    //                     ElMessage.success('状态更新成功');
+                    //                 } catch (error) {
+                    //                     console.error(error);
+                    //                     ElMessage.error('状态更新失败');
+                    //                     row.status = !row.status;  // 恢复原状态
+                    //                 }
+                    //             },
+                    //         },
+                    //     },
+                    // },
                 },
                 'template.template_name': {
                     title: "模板分组",
@@ -182,7 +215,20 @@ export default function ({ crudExpose, context }: CreateCrudOptionsProps<Schedul
                     edit: {
                         text: '编辑',
                     },
-                    remove: { text: '删除' },
+                    remove: { text: '删除',
+                        click: ({ row }: { row: ScheduledTaskRow }) => {
+                            if (typeof row.id === 'number') {
+                                remove(row.id).then(() => {
+                                    ElMessage.success('任务已删除');
+                                    crudExpose.doRefresh();
+                                }).catch(err => {
+                                    ElMessage.error('删除任务失败: ' + err.message);
+                                });
+                            } else {
+                                ElMessage.error('无效的任务ID');
+                            }
+                        },
+                     },
                     pause: {
                         text: '停止',
                         click: ({ row }: { row: ScheduledTaskRow }) => {

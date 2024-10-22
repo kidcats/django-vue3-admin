@@ -8,7 +8,7 @@ export interface ScheduledTask {
     id: number;
     name: string;
     cron_expression: string;
-    status: string;
+    is_active: boolean;
     create_datetime: string;
     update_datetime: string;
     template:Template;
@@ -20,7 +20,7 @@ export interface ScheduledTaskQuery {
     limit?: number;
     name__icontains?: string;
     cron_expression__name?: string;
-    status?: string;
+    is_active?: boolean;
     create_datetime?: string;
     update_datetime?: string;
 }

@@ -174,10 +174,20 @@ export default function ({ crudExpose, context }: CreateCrudOptionsProps<Templat
                         show: true,
                         text: '详情',
                     },
-                    remove: {
-                        show: true,
-                        text: '删除',
-                    },
+                    remove: { text: '删除',
+                        click: ({ row }: { row: TemplateRow }) => {
+                            if (typeof row.id === 'number') {
+                                remove(row.id).then(() => {
+                                    ElMessage.success('任务已删除');
+                                    crudExpose.doRefresh();
+                                }).catch(err => {
+                                    ElMessage.error('删除任务失败: ' + err.message);
+                                });
+                            } else {
+                                ElMessage.error('无效的任务ID');
+                            }
+                        },
+                     },
                 },
             },
             form: {

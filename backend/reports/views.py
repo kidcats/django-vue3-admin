@@ -280,9 +280,9 @@ class ScheduledTaskViewSet(CustomModelViewSet):
         暂停定时任务
         """
         task = self.get_object()
-        if task.status == '暂停':
+        if not task.is_active:
             return ErrorResponse({"detail": "任务已处于暂停状态。"})
-        task.status = '暂停'
+        task.is_active  =  False
         task.save()
         return SuccessResponse({"detail": "任务已暂停。"})
 
@@ -292,9 +292,9 @@ class ScheduledTaskViewSet(CustomModelViewSet):
         恢复定时任务
         """
         task = self.get_object()
-        if task.status == '运行中':
+        if task.is_active:
             return ErrorResponse({"detail": "任务已处于运行中状态。"})
-        task.status = '运行中'
+        task.is_active = True
         task.save()
         return SuccessResponse({"detail": "任务已恢复运行。"})
 

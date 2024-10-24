@@ -10,7 +10,6 @@ from django_celery_beat.models import PeriodicTask, CrontabSchedule
 import json
 
 
-
 def media_file_name(instance, filename):
     """
     自定义文件上传路径函数
@@ -340,6 +339,8 @@ class ScheduledTask(CoreModel):
         return self.name
 
 
+
+
 class TaskLog(CoreModel):
     RESULT_CHOICES = [
         ('成功', '成功'),
@@ -347,7 +348,7 @@ class TaskLog(CoreModel):
         ('执行中', '执行中'),
     ]
 
-    job_id = models.CharField(max_length=100, verbose_name="任务ID", help_text="任务ID")
+    task_id = models.CharField(max_length=100, verbose_name="任务ID", help_text="任务ID")
     task_name = models.CharField(max_length=255, verbose_name="任务名称", help_text="任务名称")
     start_time = models.DateTimeField(verbose_name="开始时间", help_text="开始时间")
     end_time = models.DateTimeField(null=True, blank=True, verbose_name="结束时间", help_text="结束时间")

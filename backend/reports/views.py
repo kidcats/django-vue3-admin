@@ -3,12 +3,12 @@
 from rest_framework import filters, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-
+from .services import TemplateService
 from dvadmin.utils.filters import DataLevelPermissionsFilter
 from reports.filter import ReportsCoreModelFilterBankend
 from dvadmin.utils.json_response import DetailResponse, ErrorResponse, SuccessResponse
 from .models import (
-    Report, EmailSendRecord, Template, ScheduledTask, TaskLog,
+    Report, EmailSendRecord, Template, ScheduledTask,TaskLog,
     IntermediateData, EmailConfiguration, ReportType, ReportGroup, Frequency
 )
 from .serializers import (
@@ -224,15 +224,38 @@ class TemplateViewSet(CustomModelViewSet):
     update_serializer_class = TemplateCreateUpdateSerializer
     search_fields = ['template_name', 'template_type', 'content', 'template_group']
     ordering_fields = ['id', 'create_datetime', 'update_datetime']
+
     
     def create(self, request, *args, **kwargs):
         logger.info(f"Create method - Request data: {request.data}")
-        form_data = request.data.get('form', {})
+        content = request.data.get('content', '')
+        logger.info(request.data)
+        is_valid, error_msg = TemplateService.validate_template_content(content)
+        if not is_valid:
+            return ErrorResponse(msg=f"模板内容验证失败: {error_msg}")
+            
         serializer = self.get_serializer(data=form_data)
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
         headers = self.get_success_headers(serializer.data)
-        return SuccessResponse(serializer.data,headers=headers)
+        return SuccessResponse(serializer.data, headers=headers)
+    
+    def update(self, request, *args, **kwargs):
+        """修改模板时验证content并更新数据"""
+        # 获取请求数据
+        content = request.data.get('content', '')
+        logger.info(request.data)
+        # 验证模板内容
+        is_valid, error_msg = TemplateService.validate_template_content(content)
+        if not is_valid:
+            return ErrorResponse(msg=f"模板内容验证失败: {error_msg}")
+        
+        try:
+            # 调用父类的update方法并获取响应
+            response = super().update(request, *args, **kwargs)
+            return response
+        except Exception as e:
+            return ErrorResponse(msg=f"更新模板失败: {str(e)}")
     
     @action(detail=False, methods=['get'])
     def template_group_type(self, request):

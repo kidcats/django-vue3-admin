@@ -435,3 +435,4 @@ CACHES = { # 配置缓存
 BROKER_URL = f'{REDIS_URL}/2' # 库名可自选1~16
 CELERY_RESULT_BACKEND = 'django-db' # celery结果存储到数据库中
 CELERYBEAT_SCHEDULER = 'django_celery_beat.schedulers.DatabaseScheduler'  # Backend数据库
+CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers.DatabaseScheduler'

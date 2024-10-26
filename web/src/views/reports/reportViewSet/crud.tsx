@@ -102,7 +102,7 @@ export default function ({ crudExpose, context }: CreateCrudOptionsProps<ReportR
                         <tbody>
                             ${emailHistory.value.map(item => `
                                 <tr>
-                                    <td title="${item.description || '-'}">${item.description || '-'}</td>
+                                    <td title="${item.descriptions || '-'}">${item.descriptions || '-'}</td>
                                     <td title="${item.sent_at || '-'}">${item.sent_at || '-'}</td>
                                     <td title="${item.update_datetime || '-'}">${item.update_datetime || '-'}</td>
                                     <td title="${item.create_datetime || '-'}">${item.create_datetime || '-'}</td>

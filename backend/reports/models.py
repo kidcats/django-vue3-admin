@@ -433,6 +433,11 @@ class EmailSendRecord(CoreModel):
     status = models.CharField(
         max_length=10, choices=SEND_STATUS, verbose_name="发送状态", help_text="发送状态"
     )
+    descriptions = models.TextField(
+        verbose_name="信息",
+        default="无",
+        help_text="详细信息"
+    )
 
     class Meta:
         db_table = table_prefix + "report_email_send_records"

@@ -1,102 +1,56 @@
 <template>
-    <fs-page class="ReportSettings">
-        <a-tabs v-model:activeKey="activeTab" @change="handleTabChange">
-            <a-tab-pane key="group" tab="模板分组">
-                <fs-crud ref="groupCrudRef" v-bind="groupCrudBinding">
-                    <template #actionbar-right>
-                        <importExcel api="api/report-group/" v-auth="'report:Import'">导入分组</importExcel>
-                    </template>
-                </fs-crud>
-            </a-tab-pane>
-            <a-tab-pane key="type" tab="模板类型">
-                <fs-crud ref="typeCrudRef" v-bind="typeCrudBinding">
-                    <template #actionbar-right>
-                        <importExcel api="api/report-type/" v-auth="'report:Import'">导入类型</importExcel>
-                    </template>
-                </fs-crud>
-            </a-tab-pane>
-        </a-tabs>
-    </fs-page>
+	<fs-page class="PageFeatureSearchMulti">
+		<fs-crud ref="crudRef" v-bind="crudBinding">
+			<template #cell_url="scope">
+				<el-tag size="small">{{ scope.row.url }}</el-tag>
+			</template>
+			<!-- 注释编号: django-vue3-admin-index442216: -->
+			<!-- 注释编号:django-vue3-admin-index39263917:代码开始行-->
+			<!--  功能说明:使用导入组件，并且修改api地址为当前对应的api，当前是demo的api="api/CrudDemoModelViewSet/"-->
+			<template #actionbar-right>
+				<importExcel api="api/reports/" v-auth="'user:Import'">导入</importExcel>
+			</template>
+			<!--  注释编号:django-vue3-admin-index263917:代码结束行-->
+			
+		</fs-crud>
+	</fs-page>
 </template>
 
 <script lang="ts">
-import { onMounted, getCurrentInstance, defineComponent, ref } from 'vue';
+import { onMounted, getCurrentInstance, defineComponent} from 'vue';
 import { useFs } from '@fast-crud/fast-crud';
-import { createGroupCrudOptions, createTypeCrudOptions } from './crud';
-import importExcel from '/@/components/importExcel/index.vue';
+import createCrudOptions  from './crud';
 
-export default defineComponent({
-    name: "ReportSettings",
-    components: { importExcel },
-    setup() {
-        const instance = getCurrentInstance();
-        const activeTab = ref<string>('group');
+// 注释编号: django-vue3-admin-index192316:导入组件
+import importExcel from '/@/components/importExcel/index.vue'   
 
-        // 分组模块上下文
-        const groupContext: any = {
-            componentName: 'ReportGroup'
-        };
 
-        // 类型模块上下文
-        const typeContext: any = {
-            componentName: 'ReportType'
-        };
+export default defineComponent({    //这里配置defineComponent
+    name: "groupConfigViewSet",   //把name放在这里进行配置了
+	components: {importExcel},  //注释编号: django-vue3-admin-index552416: 注册组件，把importExcel组件放在这里，这样<template></template>中才能正确的引用到组件
+    setup() {   //这里配置了setup()
 
-        // 初始化分组模块的 CRUD
-        const { 
-            crudBinding: groupCrudBinding, 
-            crudRef: groupCrudRef, 
-            crudExpose: groupCrudExpose 
-        } = useFs({ 
-            createCrudOptions: createGroupCrudOptions, 
-            context: groupContext 
-        });
+		const instance = getCurrentInstance();
 
-        // 初始化类型模块的 CRUD
-        const { 
-            crudBinding: typeCrudBinding, 
-            crudRef: typeCrudRef, 
-            crudExpose: typeCrudExpose 
-        } = useFs({ 
-            createCrudOptions: createTypeCrudOptions, 
-            context: typeContext 
-        });
+		const context: any = {
+			componentName: instance?.type.name
+		};
 
-        // 处理标签切换
-        const handleTabChange = (key: string) => {
-            if (key === 'group') {
-                groupCrudExpose.doRefresh();
-            } else if (key === 'type') {
-                typeCrudExpose.doRefresh();
-            }
-        };
+		const { crudBinding, crudRef, crudExpose, resetCrudOptions } = useFs({ createCrudOptions, context});  
 
-        // 页面加载后获取分组数据
-        onMounted(() => {
-            groupCrudExpose.doRefresh();
-        });
 
-        return {
-            activeTab,
-            groupCrudRef,
-            groupCrudBinding,
-            typeCrudRef,
-            typeCrudBinding,
-            handleTabChange
-        };
-    }
-});
+		// 页面打开后获取列表数据
+		onMounted(() => {
+			crudExpose.doRefresh();
+		});
+		return {  
+		//增加了return把需要给上面<template>内调用的<fs-crud ref="crudRef" v-bind="crudBinding">
+				crudBinding,
+				crudRef,
+			};
+	
+
+    } 	//这里关闭setup()
+  });  //关闭defineComponent
+
 </script>
-
-<style scoped>
-.ReportSettings {
-    .ant-tabs {
-        margin: -24px;
-        padding: 24px;
-    }
-
-    .ant-tabs-content {
-        margin-top: 16px;
-    }
-}
-</style>

@@ -318,6 +318,7 @@ def generate_and_send_report(self, **kwargs):
             
             # 发送邮件
         email_sender = EmailSender()
+        logger.info("准备发送邮件")
         email_sender.send_mail(report.id,title,report_content)
             
             # 更新执行时间

@@ -19,7 +19,7 @@ import {
     update
 } from "./api";
 import { TemplateRow } from "../templateViewSet/crud";
-import { ReportGroupRow } from "../groupConfigViewSet/api";
+import { ReportGroup } from "../groupConfigViewSet/api";
 
 export type ScheduledTaskRow = {
     id?: number;
@@ -29,7 +29,7 @@ export type ScheduledTaskRow = {
     is_active?: boolean;
     create_datetime?: string;
     update_datetime?: string;
-    report_template?: ReportGroupRow;
+    report_template?: ReportGroup;
 } & Record<string, any>;
 
 function generateCronDescription(cronExpression: string | undefined): string {

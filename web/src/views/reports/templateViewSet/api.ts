@@ -1,13 +1,13 @@
 import { AddReq } from '@fast-crud/fast-crud';
-import { getReportGroupList, ReportGroupRow, ReportTypeRow } from '../groupConfigViewSet/api';
+import { getReportGroupList, ReportGroup, ReportType } from '../groupConfigViewSet/api';
 import { request } from '/@/utils/service';
 
 const BASE_URL = '/api/templates/';
 
 export interface Template {
     id: number;
-    template_type: ReportTypeRow;
-    template_group: ReportGroupRow;
+    template_type: ReportType;
+    template_group: ReportGroup;
     template_name: string;
     content: string;
     creator_id: number;

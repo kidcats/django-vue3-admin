@@ -1,6 +1,5 @@
 import { CreateCrudOptionsProps, CreateCrudOptionsRet, FsButton, dict, utils } from "@fast-crud/fast-crud";
 import { getList, create, update } from "./api";
-import { ElMessage } from 'element-plus';
 import { ref } from "vue";
 
 export type IntermediateTableRow = {

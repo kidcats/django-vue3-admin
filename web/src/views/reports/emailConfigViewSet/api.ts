@@ -1,4 +1,4 @@
-import { getReportTypeList, ReportType } from '../api';
+import { getReportTypeList, ReportType } from '../groupConfigViewSet/api';
 import { request } from '/@/utils/service';
 
 const BASE_URL = '/api/email-configurations/';

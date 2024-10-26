@@ -4,7 +4,7 @@ const BASE_URL = '/api/task-logs/';
 
 export interface TaskLog {
     id: number;
-    job_id: string;
+    task_id: string;
     task_name: string;
     start_time: string;
     end_time: string | null;
@@ -18,7 +18,7 @@ export interface TaskLog {
 export interface TaskLogQuery {
     page?: number;
     limit?: number;
-    job_id__icontains?: string;
+    task_id__icontains?: string;
     task_name__icontains?: string;
     result?: string;
     create_datetime?: string;

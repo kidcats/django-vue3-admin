@@ -225,6 +225,7 @@ class IntermediateDataCreateUpdateSerializer(CustomModelSerializer):
     """
     创建/更新中间数据时的序列化器
     """
+    job = ScheduledTaskCreateUpdateSerializer()
 
     class Meta:
         model = IntermediateData
@@ -238,7 +239,6 @@ class EmailConfigurationSerializer(CustomModelSerializer):
     """
     邮件配置序列化器
     """
-    # creator = serializers.StringRelatedField()
     report_type = ReportTypeSerializer()
 
     class Meta:
@@ -249,6 +249,7 @@ class EmailConfigurationCreateUpdateSerializer(CustomModelSerializer):
     """
     创建/更新邮件配置时的序列化器
     """
+
 
     class Meta:
         model = EmailConfiguration

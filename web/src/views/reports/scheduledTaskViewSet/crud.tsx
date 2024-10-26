@@ -19,7 +19,7 @@ import {
     update
 } from "./api";
 import { TemplateRow } from "../templateViewSet/crud";
-import { ReportGroupRow } from "../api";
+import { ReportGroupRow } from "../groupConfigViewSet/api";
 
 export type ScheduledTaskRow = {
     id?: number;

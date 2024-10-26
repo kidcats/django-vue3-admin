@@ -2,7 +2,7 @@ import { CreateCrudOptionsProps, CreateCrudOptionsRet, FsButton, compute, dict, 
 import { getList, create, update, remove, getTemplateTypes, getTemplateGroups } from "./api";
 import { ElMessage } from 'element-plus';
 import { ref } from "vue";
-import { ReportGroupRow, ReportTypeRow } from "../api";
+import { ReportGroupRow, ReportTypeRow } from "../groupConfigViewSet/api";
 import { FsUploaderFormOptions } from "@fast-crud/fast-extends";
 
 export type TemplateRow = {

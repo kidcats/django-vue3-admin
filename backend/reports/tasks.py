@@ -1,11 +1,11 @@
-import datetime
+from datetime import datetime, timedelta, date, time
 from celery import shared_task
 from django.core.mail import send_mail
 from reports.models import ScheduledTask,Template
 from django.conf import settings
-from reports.models import QueryConfig, Report, Task
+from reports.models import QueryConfig, Report, Task,TaskLog
 from Tools import YanHuang
-from Tools.Mail import send_mail as custom_send_mail
+from Tools.Mail.send_mail import EmailSender
 import logging
 from typing import Dict,Any,List
 from django_celery_beat.models import PeriodicTask, CrontabSchedule
@@ -14,6 +14,26 @@ import json
 logger = logging.getLogger(__name__)
 TIMEZONE = "Asia/Shanghai"
 QUERY_TIME_RANGE = (22, 15, 22, 45)
+
+ATTACK_QUERY_CONFIG = QueryConfig(
+    query="WITH base AS (SELECT * FROM firewall_checkpoint WHERE product = '{product}' and protection_type in ({protection_type})) SELECT COUNT(*) AS \"数量\", severity FROM base GROUP BY severity",
+    product="SmartDefense",
+    protection_type=["'IPS'", "'anomaly'"],
+    severity=["'4'"]
+)
+
+HIGH_RISK_QUERY_CONFIG = QueryConfig(
+    query="WITH base AS (SELECT * FROM firewall_checkpoint WHERE product in ({product}) and protection_type in ({protection_type}) and severity in ({severity})) SELECT COUNT(*) AS \"数量\", severity FROM base GROUP BY severity",
+    product="'New Anti Virus', 'Anti Malware'",
+    protection_type=["'URL reputation'", "'DNS Trap'", "'protection'"],
+    severity=["'3'", "'4'"]
+)
+
+USER_ISSUE_QUERY_CONFIG = {
+    "online": "SELECT * FROM nac_online_after_22clock_view",
+    "proline": "SELECT * FROM nac_IPConline_after_22clock_view"
+}
+
 
 class QueryExecutor:
     @staticmethod
@@ -56,26 +76,55 @@ class ReportGenerator:
         self.query_executor = QueryExecutor()
         self.time_helper = TimeHelper()
         
-    def generate(self, date: datetime.datetime = None) -> str:
+    def generate(self, date: datetime = None) -> str:
         """生成最终报告"""
         if date is None:
-            date = datetime.datetime.now() - datetime.timedelta(days=1)
+            date = datetime.now() - timedelta(days=1)
             
         # 获取所有数据
         data = self._generate_all_data(date)
-        
+        logger.info("获取所有数据")
+        logger.info(data)
         # 解析并渲染模板
         return self._parse_template(self.template.content, data)
         
-    def _generate_all_data(self, date: datetime.datetime) -> Dict[str, Any]:
+    def _generate_all_data(self, date: datetime) -> Dict[str, Any]:
         """生成所有可能用到的报告数据"""
+        # report1_events
+        # report2_events
+        # report3_query
+        # report1_todayattack_number = 511
+        # report1_yestodayattack_number = 511
+        # report1_todayhighattack_attack_number = 46
         data = {}
-        previous_date = date - datetime.timedelta(days=1)
+        previous_date = date - timedelta(days=1)
         
         # 生成所有类型的数据
-        data.update(self._generate_attack_data(date, previous_date))
-        data.update(self._generate_high_risk_data(date, previous_date))
-        data.update(self._generate_user_issue_data(date, previous_date))
+        # data.update(self._generate_attack_data(date, previous_date))
+        # data.update(self._generate_high_risk_data(date, previous_date))
+        # data.update(self._generate_user_issue_data(date, previous_date))
+        data = {
+            "attack_number": 100,
+            "attack_change": 100 - 80,
+            "attack_change_ratio": 0.2,
+            "high_attack_number": 120,
+            "high_attack_ratio": 0.3,
+            "attack_events": "current_events",
+            "attack_distribution": {},
+            "high_risk_number": 20,
+            "high_risk_change": 20,
+            "high_risk_change_ratio": 0.3,
+            "behavior_type_distribution": "1",
+            "top_behavior_types": ["1","2"],
+            "high_risk_events": "current_events",
+            "issue_number": 20,
+            "issue_change": 30,
+            "issue_change_ratio": 0.7,
+            "issue_type_distribution": "issue_types",
+            "top_issue_types": ["3","2"],
+            "issue_events": "nothing"
+        }
+        
         
         # 添加通用数据
         data.update({
@@ -85,7 +134,7 @@ class ReportGenerator:
             
         return data
 
-    def _generate_attack_data(self, date: datetime.datetime, previous_date: datetime.datetime) -> Dict[str, Any]:
+    def _generate_attack_data(self, date: datetime, previous_date: datetime) -> Dict[str, Any]:
         """生成攻击报告相关数据"""
         current_query = ATTACK_QUERY_CONFIG.query.format(
             product=ATTACK_QUERY_CONFIG.product,
@@ -110,7 +159,7 @@ class ReportGenerator:
             "attack_distribution": self._analyze_event_distribution(current_events, 'attack_type')
         }
 
-    def _generate_high_risk_data(self, date: datetime.datetime, previous_date: datetime.datetime) -> Dict[str, Any]:
+    def _generate_high_risk_data(self, date: datetime, previous_date: datetime) -> Dict[str, Any]:
         """生成高危行为报告相关数据"""
         query = HIGH_RISK_QUERY_CONFIG.query.format(
             risk_level=HIGH_RISK_QUERY_CONFIG.risk_level
@@ -130,7 +179,7 @@ class ReportGenerator:
             "high_risk_events": current_events
         }
 
-    def _generate_user_issue_data(self, date: datetime.datetime, previous_date: datetime.datetime) -> Dict[str, Any]:
+    def _generate_user_issue_data(self, date: datetime, previous_date: datetime) -> Dict[str, Any]:
         """生成用户问题报告相关数据"""
         query = USER_ISSUE_QUERY_CONFIG.query
         
@@ -148,7 +197,7 @@ class ReportGenerator:
             "issue_events": current_issues
         }
 
-    def _execute_date_query(self, query: str, date: datetime.datetime) -> List[Any]:
+    def _execute_date_query(self, query: str, date: datetime) -> List[Any]:
         """执行指定日期的查询"""
         start_time, end_time = self.time_helper.get_query_time_range(date)
         query_request = self.query_executor.create_query_request(query, start_time, end_time)
@@ -220,47 +269,82 @@ class ReportGenerator:
         """判断是否为高风险攻击"""
         return event.risk_level >= HIGH_RISK_LEVEL
 
-@shared_task
-def generate_and_send_report(**kwargs):
+@shared_task(bind=True)
+def generate_and_send_report(self, **kwargs):
     task_id = kwargs.get('task_id')
+    title = kwargs.get('task_name')
+    creator = kwargs.get('creator')
+    
+    # 创建任务日志
+    task_log = TaskLog.objects.create(
+        task_id=self.request.id,  # Celery任务ID
+        task_name=f"{title}_{task_id}",
+        start_time=datetime.now(),
+        parameters=kwargs,
+        result='执行中',
+        creator=creator
+    )
+    logger.info("创建任务日志")
     try:
         scheduled_task = ScheduledTask.objects.get(id=task_id)
-        
-        if not scheduled_task.is_active:
-            return f"Task {task_id} is no longer active"
             
+        if not scheduled_task.is_active:
+            task_log.result = '失败'
+            task_log.error_info = f"Task {task_id} is no longer active"
+            task_log.end_time = datetime.now()
+            task_log.save()
+            return task_log.error_info
+                
         template = Template.objects.get(id=scheduled_task.template.id)
-        
-        # 生成报告内容
+            
+            # 生成报告内容
         report_generator = ReportGenerator(template)
-        content = report_generator.generate()
-        
-        title = f"{scheduled_task.report_name} - {datetime.datetime.now().strftime('%Y-%m-%d %H:%M')}"
-        
-        # 保存报告
-        report = Report.objects.create(
-            title=title,
-            content=content,
-            scheduled_task=scheduled_task
+        report_content = report_generator.generate()
+            
+        title = f"{scheduled_task.name} - {datetime.now().strftime('%Y-%m-%d %H:%M')}"
+            
+            # 保存报告
+        report, created = Report.objects.get_or_create(
+            schedule_task=scheduled_task,
+            defaults={
+                'title': title,
+                'type': scheduled_task.template.template_type,
+                'report_group': scheduled_task.template.template_group,
+                'creator': scheduled_task.template.creator,
+                'content': report_content,
+                "report_date" : datetime.now().date()
+            }
         )
-        
-        # 发送邮件
-        custom_send_mail(title, content)
-        
-        # 更新执行时间
-        scheduled_task.last_run = datetime.datetime.now()
+            
+            # 发送邮件
+        email_sender = EmailSender()
+        email_sender.send_mail(report.id,title,report_content)
+            
+            # 更新执行时间
+        scheduled_task.last_run = datetime.now()
         scheduled_task.save()
-        
+            
+            # 更新任务日志为成功
+        task_log.result = '成功'
+        task_log.end_time = datetime.now()
+        task_log.save()
+        logger.info("创建任务日志成功")
+            
         return f"Report generated and sent successfully: {title}"
         
     except Exception as e:
+        # 更新任务日志为失败
+        task_log.result = '失败'
+        task_log.error_info = str(e)
+        task_log.end_time = datetime.now()
+        task_log.save()
+        logger.info("创建失败任务日志")
+        
         return f"Error: {str(e)}"
-
 
 
 @shared_task
 def update_celery_beat_schedule():
-    
     try:
         # 获取所有激活的任务
         active_tasks = ScheduledTask.objects.filter(is_active=True)
@@ -268,11 +352,26 @@ def update_celery_beat_schedule():
         # 存储所有活跃任务的名称，用于后续清理
         active_task_names = set()
 
+        # 获取现有的周期性任务
+        existing_tasks = {
+            task.name: task 
+            for task in PeriodicTask.objects.filter(
+                task='reports.tasks.generate_and_send_report'
+            )
+        }
+
         for task in active_tasks:
-            # 解析cron表达式
+            task_name = f"{task.name}_generate_report_{task.id}"
+            active_task_names.add(task_name)
+            
+            # 如果任务已存在且正在运行，跳过更新
+            existing_task = existing_tasks.get(task_name)
+            if existing_task:
+                continue
+
+            # 对于新任务，创建定时计划
             minute, hour, day, month, day_of_week = task.cron_expression.split()
             
-            # 获取或创建定时计划
             schedule, _ = CrontabSchedule.objects.get_or_create(
                 minute=minute,
                 hour=hour,
@@ -280,37 +379,44 @@ def update_celery_beat_schedule():
                 month_of_year=month,
                 day_of_week=day_of_week
             )
-            
+            schedule.timezone = 'Asia/Shanghai'
+            schedule.save()
+
             # 准备任务参数
             task_kwargs = {
                 'task_id': task.id,
-                # 'task_type': task.task_type,  # 假设有这个字段
                 'template_id': task.template.id,
-                # 'report_name': task.report_name  # 假设有这个字段
+                'title': task_name,
+                'creator':task.template.creator,
             }
             logger.info(task_kwargs)
-            # 任务名称
-            task_name = f"generate_report_{task.id}"
-            active_task_names.add(task_name)
             
-            # 创建或更新定时任务
-            PeriodicTask.objects.update_or_create(
+            # 只创建新任务，不更新现有任务
+            PeriodicTask.objects.create(
                 name=task_name,
-                defaults={
-                    'task': 'reports.tasks.generate_and_send_report',
-                    'crontab': schedule,
-                    'kwargs': json.dumps(task_kwargs),
-                    'enabled': True,
-                }
+                task='reports.tasks.generate_and_send_report',
+                crontab=schedule,
+                kwargs=json.dumps(task_kwargs),
+                enabled=True,
             )
         
-        # 清理不再激活的任务
-        PeriodicTask.objects.filter(
-            task='reports.tasks.generate_and_send_report'  # 只清理报告生成任务
+        # 清理不再激活的任务，但排除正在运行的任务
+        inactive_tasks = PeriodicTask.objects.filter(
+            task='reports.tasks.generate_and_send_report'
         ).exclude(
             name__in=active_task_names
-        ).delete()
+        )
+        
+        for inactive_task in inactive_tasks:
+            # 如果任务处于运行状态，跳过删除
+            if TaskLog.objects.filter(
+                task_name=inactive_task.name,
+                result='执行中'
+            ).exists():
+                continue
+            inactive_task.delete()
         
         return "Successfully updated celery beat schedule"
     except Exception as e:
+        logger.error(f"Error in update_celery_beat_schedule: {str(e)}")
         return f"Error updating celery beat schedule: {str(e)}"

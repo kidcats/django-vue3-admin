@@ -1,5 +1,5 @@
 import { method } from 'lodash';
-import { getReportGroupList, getReportTypeList, ReportGroup, ReportType } from '../api';
+import { getReportGroupList, getReportTypeList, ReportGroup, ReportType } from '../groupConfigViewSet/api';
 import { request } from '/@/utils/service';
 
 const BASE_URL = '/api/reports/';
@@ -72,8 +72,8 @@ export const remove = (id: number) => {
 
 export const batchDelete = (ids: number[]) => {
     return request({
-        url: BASE_URL,
-        method: 'delete',
+        url: `${BASE_URL}batch_delete/`,
+        method: 'post',
         data: { ids }
     });
 };

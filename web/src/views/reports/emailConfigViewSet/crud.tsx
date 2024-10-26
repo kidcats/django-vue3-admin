@@ -2,12 +2,12 @@ import { CreateCrudOptionsProps, CreateCrudOptionsRet, FsButton, dict, compute }
 import { getList, create, update, remove, updateStatus, getReportTypes } from "./api";
 import { ElMessage } from 'element-plus';
 import { ref } from "vue";
-import { ReportTypeRow } from "../api";
+import { ReportTypeRow } from "../groupConfigViewSet/api";
 
 export type EmailConfigRow = {
     id?: number;
     report_type?: ReportTypeRow | string | number;
-    recipients?: string;
+    recipients: string;
     status?: boolean;
     creator_id?: number;
     create_datatime?: string;
@@ -34,7 +34,7 @@ export default function ({ crudExpose, context }: CreateCrudOptionsProps<EmailCo
             },
             columns: {
                 'report_type.name': {
-                    title: "模板分组",
+                    title: "简报类型",
                     type: "dict-select",
                     dict: dict({
                         url: 'api/report-type',
@@ -50,7 +50,7 @@ export default function ({ crudExpose, context }: CreateCrudOptionsProps<EmailCo
                 },
                 recipients: {
                     title: "邮件接收人",
-                    type: "text",
+                    type: "component",
                     column: {
                         width: 300,
                         showOverflowTooltip: true,
@@ -151,7 +151,6 @@ export default function ({ crudExpose, context }: CreateCrudOptionsProps<EmailCo
                     },
                 },
                 beforeSubmit: ({ form }) => {
-                    console.log('BeforeSubmit - form:', form);
                     if (form.report_type) {
                       // 确保只发送 id
                       console.log(form.report_type);

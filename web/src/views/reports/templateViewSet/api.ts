@@ -1,5 +1,5 @@
 import { AddReq } from '@fast-crud/fast-crud';
-import { getReportGroupList, ReportGroupRow, ReportTypeRow } from '../api';
+import { getReportGroupList, ReportGroupRow, ReportTypeRow } from '../groupConfigViewSet/api';
 import { request } from '/@/utils/service';
 
 const BASE_URL = '/api/templates/';

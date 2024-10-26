@@ -757,21 +757,60 @@ repley_events = repley['events']
 
 ### 4.4 发送邮件
 
+@shared_task
+def update_celery_beat_schedule():
+    
+    try:
+        # 获取所有激活的任务
+        active_tasks = ScheduledTask.objects.filter(is_active=True)
+        
+        # 存储所有活跃任务的名称，用于后续清理
+        active_task_names = set()
 
-# 备注
-## 1. 重新考虑数据的流向问题。现在我有task，如何将现有的task和celery的task相连接？这个是要思考的问题
-第一步，先考虑现在task的结构
-## 2. 第二，如果能连接成功，那么就已经有频率问题，现在的频率是自己定义的，用的是string，如何绑定celery的频率呢？
-## 3. 我已经有定义好的任务了，并且任务也可以定时执行了，那么现在就要考虑在任务中添加一些功能，比如在数据库中写入一下数据比如说
-  1. task执行完毕要有执行日志吧，现在已经提供给你一个日志，我可能需要改一下这个日志的界面，这个优先级比较低，暂时不考虑
-  2. task的执行结果，是需要发邮件的，邮件的内容是需要根据模版来的，流程是这样的 读取数据 -> 提取数据并计算对应的参数 -> 根据读取的数据填入对应的模板-> 将补充完毕的模板按照邮件列表 挨个发送-> 记录邮件发送的日志，不管是发送成功还是失败
-  3. 等下，我需要先理一下简报，模板，任务之间关系。首先任务是决定定时执行的，定时获取数据这个没问题。当发送的时候，会根据简报来发送吗？比如我有一个安全攻击的简报，定时到了，读取对应的数据，根据简报类型，简报分组，简报模板，结合参数发送数据，同时记录一下发送记录。**而定时任务执行日志，如何设置暂时不考虑**。重点在与简报类型，比如说日报，那就是发送频率一日一次，如果是安全漏洞，则可能是安全漏洞类型的模板。话说模板和分组的区别是什么？同一个分组会使用不同的模板吗？除非是三者共同决定一个简报的内容。用户使用的时候，可能会在模板管理界面新增一个模板，这个时候就会指定模板的类型和模板分组以及模板内容。而新建简报的时候就是要发送给邮件的内容，是用上面这些东西生成后的了。生成一次就会产生一次邮件发送记录。**当用户删除这个简报的时候，对应的定时任务如何处理？** 当用户删除的时候，这个简报肯定就不存在了。所以要删除对应表里面的数据。现在如果用户新建了一个模板，用到了，指定了这些数据应该应该这么去。然后，用户会在定时任务中新建一个定时任务，可能会用到这个模板，然后呢当定时任务启动的时候，就会用这个模板产生对应的简报，简报对应的信息会在简报列表中出现。当用户删除这个简报的时候，对应的定时任务也应该停止。一个定时任务只可能对应唯一的简报。那么对应到代码中，就产生了几个问题
-  1. 定时任务是可变的，因为简报是可以重新生成的，比如换一个模板，换一个定时频率就会产生新的简报，因此就没有办法在代码中写死定时任务，在celery的管理界面，只能指定写死在代码中的task，设置这个task的执行频率，是否启动，是否停止？并且用户是可以直接在前端界面直接生成新的定时任务的。这个问题如何解决？
-
-
-完善Report和Template模型
-设计Task模型来关联Report、Template和定时任务
-实现generate_and_send_report任务函数的具体逻辑
-设计用户界面和API来创建、管理定时任务
-处理任务的执行日志和邮件发送记录
- 
+        for task in active_tasks:
+            # 解析cron表达式
+            minute, hour, day, month, day_of_week = task.cron_expression.split()
+            
+            # 获取或创建定时计划
+            schedule, _ = CrontabSchedule.objects.get_or_create(
+                minute=minute,
+                hour=hour,
+                day_of_month=day,
+                month_of_year=month,
+                day_of_week=day_of_week
+            )
+            
+            # 准备任务参数
+            task_kwargs = {
+                'task_id': task.id,
+                # 'task_type': task.task_type,  # 假设有这个字段
+                'template_id': task.template.id,
+                # 'report_name': task.report_name  # 假设有这个字段
+            }
+            logger.info(task_kwargs)
+            # 任务名称
+            task_name = f"generate_report_{task.id}"
+            active_task_names.add(task_name)
+            
+            # 创建或更新定时任务
+            PeriodicTask.objects.update_or_create(
+                name=task_name,
+                defaults={
+                    'task': 'reports.tasks.generate_and_send_report',
+                    'crontab': schedule,
+                    'kwargs': json.dumps(task_kwargs),
+                    'enabled': True,
+                }
+            )
+        
+        # 清理不再激活的任务
+        PeriodicTask.objects.filter(
+            task='reports.tasks.generate_and_send_report'  # 只清理报告生成任务
+        ).exclude(
+            name__in=active_task_names
+        ).delete()
+        
+        return "Successfully updated celery beat schedule"
+    except Exception as e:
+        return f"Error updating celery beat schedule: {str(e)}"
+上面这个定时任务是我用来检测用户创建了那些定时任务的代码。而我只需要在TaskLog这个表里面记录生成的这些任务的执行日志就可以了，因此TaskLog存储的是TaskResult里面分析后的结果。现在要求你基于上面这个思路来实现对应的代码

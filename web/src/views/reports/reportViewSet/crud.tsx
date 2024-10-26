@@ -1,8 +1,8 @@
 import { CreateCrudOptionsProps, CreateCrudOptionsRet, FsButton, dict } from "@fast-crud/fast-crud";
-import { getList, create, update, remove, getReportTypes, getEmailHistory, getReportGroups } from "./api";
+import { getList, create, update, remove, getReportTypes, getEmailHistory, getReportGroups, batchDelete } from "./api";
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { ref } from "vue";
-import { getReportGroup, ReportGroupRow, ReportTypeRow } from "../api";
+import { getReportGroup, ReportGroupRow, ReportTypeRow } from "../groupConfigViewSet/api";
 
 // 这个很重要，因为pagerequest返回的列表就要跟这个对其
 // 同时下面column里面的行字段匹配的时候也会根据这个类里面的字段名匹配上
@@ -281,49 +281,66 @@ export default function ({ crudExpose, context }: CreateCrudOptionsProps<ReportR
                     },
                 },
             },
-            toolbar: {
-                show: true,
-                buttons: {
-                    search: { show: false },
-                    refresh: { show: false },
-                    compact: { show: false },
-                    export: { show: false },
-                    columns: { show: false },
-                    custom: {
-                        text: '批量删除',
-                        type: 'danger',
-                        // icon: 'el-icon-delete',
-                        validate: true, // 需要选中行才能启用按钮
-                        click: async () => {
-                            // 使用类型断言访问内部的 tableStore
-                            const crudBindingValue = crudExpose.crudBinding.value as any;
-                            const selected = crudBindingValue.tableStore.getSelectionRows();
+            // 修改 toolbar 部分的代码
+toolbar: {
+    show: true,
+    buttons: {
+        search: { show: false },
+        refresh: { show: false },
+        compact: { show: false },
+        export: { show: false },
+        columns: { show: false },
+        custom: {
+            text: '批量删除',
+            type: 'danger',
+            validate: true,
+            click: async () => {
+                try {
+                    // 直接使用 selectedRowKeys
+                    if (!selectedRowKeys.value || selectedRowKeys.value.length === 0) {
+                        ElMessage.warning('请至少选择一条记录');
+                        return;
+                    }
 
-                            if (!selected || selected.length === 0) {
-                                ElMessage.warning('请至少选择一条记录');
-                                return;
-                            }
+                    // 确认对话框
+                    await ElMessageBox.confirm(
+                        `确定要删除选中的 ${selectedRowKeys.value.length} 条记录吗？`,
+                        '批量删除确认',
+                        {
+                            type: 'warning',
+                            confirmButtonText: '确定',
+                            cancelButtonText: '取消',
+                        }
+                    );
 
-                            // 过滤掉可能为 undefined 的 ID
-                            const ids = selected.map((row: ReportRow) => row.id).filter((id: number | undefined): id is number => id !== undefined);
+                    // 转换为数字数组并过滤无效值
+                    const ids = selectedRowKeys.value
+                        .map(id => Number(id))
+                        .filter(id => !isNaN(id));
 
-                            if (ids.length === 0) {
-                                ElMessage.warning('所选记录没有有效的 ID，无法删除');
-                                return;
-                            }
+                    if (ids.length === 0) {
+                        ElMessage.warning('所选记录没有有效的 ID，无法删除');
+                        return;
+                    }
 
-                            try {
-                                await remove(ids);
-                                ElMessage.success('批量删除成功');
-                                await crudExpose.doRefresh(); // 使用 doRefresh 方法刷新数据
-                            } catch (error) {
-                                console.error(error);
-                                ElMessage.error('批量删除失败');
-                            }
-                        },
-                    },
-                },
+                    await batchDelete(ids);
+                    ElMessage.success('批量删除成功');
+                    
+                    // 清空选择
+                    selectedRowKeys.value = [];
+                    
+                    // 刷新表格
+                    await crudExpose.doRefresh();
+                } catch (error) {
+                    if (error !== 'cancel') {  // 忽略取消操作的错误
+                        console.error('批量删除错误:', error);
+                        ElMessage.error('批量删除失败');
+                    }
+                }
             },
+        },
+    },
+},
             table: {
                 border: true,
                 selection: true,

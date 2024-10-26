@@ -1,5 +1,5 @@
 import { request } from '/@/utils/service';
-import { Frequency, FrequencyRow, getFrequencyList, getReportTypeList } from '../api';
+import { Frequency, FrequencyRow, getFrequencyList, getReportTypeList } from '../groupConfigViewSet/api';
 import { Template } from '../templateViewSet/api';
 
 const BASE_URL = '/api/scheduled-tasks/';

@@ -168,6 +168,49 @@ class ReportViewSet(CustomModelViewSet):
         email_records = report.email_send_records.all().order_by('-create_datetime')
         serializer = EmailSendRecordSerializer(email_records, many=True)
         return SuccessResponse(data=serializer.data, msg="成功获取简报邮件发送历史")
+    
+    @action(detail=False, methods=['post'])
+    def batch_delete(self, request):
+        """批量删除简报"""
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        ids = serializer.validated_data['ids']
+
+        # 查询要删除的简报
+        reports_to_delete = self.queryset.filter(id__in=ids)
+        
+        # 检查权限和存在性
+        if not reports_to_delete.exists():
+            return ErrorResponse(msg="未找到指定的简报")
+
+        # 记录找到的和未找到的ID
+        found_ids = set(reports_to_delete.values_list('id', flat=True))
+        not_found_ids = set(ids) - found_ids
+
+        try:
+            with transaction.atomic():
+                # 删除相关的邮件发送记录
+                EmailSendRecord.objects.filter(report__in=reports_to_delete).delete()
+                
+                # 删除简报
+                delete_count = reports_to_delete.delete()[0]
+
+                response_data = {
+                    "success": True,
+                    "deleted_count": delete_count,
+                    "deleted_ids": list(found_ids)
+                }
+                
+                if not_found_ids:
+                    response_data["not_found_ids"] = list(not_found_ids)
+                    msg = f"成功删除{delete_count}条简报，{len(not_found_ids)}条简报未找到"
+                else:
+                    msg = f"成功删除{delete_count}条简报"
+
+                return SuccessResponse(data=response_data, msg=msg)
+
+        except Exception as e:
+            return ErrorResponse(msg=f"批量删除失败: {str(e)}")
 
 
 # ===========================
@@ -234,7 +277,7 @@ class TemplateViewSet(CustomModelViewSet):
         if not is_valid:
             return ErrorResponse(msg=f"模板内容验证失败: {error_msg}")
             
-        serializer = self.get_serializer(data=form_data)
+        serializer = self.get_serializer(data=request.data['form'])
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
         headers = self.get_success_headers(serializer.data)
@@ -340,6 +383,32 @@ class TaskLogViewSet(CustomModelViewSet):
     search_fields = ['job_id', 'task_name', 'result']
     ordering_fields = ['start_time', 'create_datetime', 'update_datetime']
     
+    
+    # def get_queryset(self):
+    #     queryset = super().get_queryset()
+    #     # 添加时间范围过滤
+    #     start_date = self.request.query_params.get('start_date')
+    #     end_date = self.request.query_params.get('end_date')
+    #     if start_date:
+    #         queryset = queryset.filter(start_time__gte=start_date)
+    #     if end_date:
+    #         queryset = queryset.filter(start_time__lte=end_date)
+    #     return queryset
+    
+    @action(detail=False, methods=['get'])
+    def statistics(self, request):
+        """
+        获取任务统计信息
+        """
+        queryset = self.get_queryset()
+        stats = {
+            'total': queryset.count(),
+            'success': queryset.filter(result='成功').count(),
+            'failed': queryset.filter(result='失败').count(),
+            'running': queryset.filter(result='执行中').count(),
+        }
+        return Response(stats)
+    
     @action(detail=True, methods=['patch'])
     def pause(self, request, pk=None):
         """
@@ -409,3 +478,12 @@ class EmailConfigurationViewSet(CustomModelViewSet):
         email_config.status = request.data.get('status', email_config.status)
         email_config.save()
         return SuccessResponse(data={'status': email_config.status}, msg="成功修改配置的状态")
+    
+    def create(self, request, *args, **kwargs):
+        content = request.data.get('content', '')
+            
+        serializer = self.get_serializer(data=request.data['form'])
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return SuccessResponse(serializer.data, headers=headers)
